@@ -60,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.oylfrutossecos.ui.components.ProductImage
 import androidx.compose.ui.unit.sp
 import com.example.oylfrutossecos.data.model.Product
 import com.example.oylfrutossecos.ui.theme.BrandAccent
@@ -298,19 +299,17 @@ fun ProductItemCard(
                     else -> BrandPrimary.copy(alpha = 0.1f)
                 }
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Spa,
-                        contentDescription = product.name,
-                        tint = when (product.category) {
-                            "Frutos Secos" -> BrandPrimary
-                            "Semillas" -> BrandSecondary
-                            "Deshidratados" -> Color(0xFFD84315)
-                            else -> BrandPrimary
-                        },
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                ProductImage(
+                    imagePath = product.imageUrl,
+                    contentDescription = product.name,
+                    placeholderTint = when (product.category) {
+                        "Frutos Secos" -> BrandPrimary
+                        "Semillas" -> BrandSecondary
+                        "Deshidratados" -> Color(0xFFD84315)
+                        else -> BrandPrimary
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
             Spacer(modifier = Modifier.width(14.dp))

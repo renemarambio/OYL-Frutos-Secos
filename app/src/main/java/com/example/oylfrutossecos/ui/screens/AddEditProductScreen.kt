@@ -49,10 +49,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.oylfrutossecos.ui.components.ProductImage
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusError
@@ -149,6 +151,19 @@ fun AddEditProductScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Vista previa de la foto del producto (tomada con la cámara)
+            ProductImage(
+                imagePath = formState.imageUrl,
+                contentDescription = "Foto del producto",
+                placeholderTint = BrandPrimary.copy(alpha = 0.5f),
+                placeholderSize = 56.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(BrandPrimary.copy(alpha = 0.08f))
+            )
+
             // Botones de acción rápida: Cámara y Escáner
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -166,7 +181,7 @@ fun AddEditProductScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Tomar Foto", color = BrandSecondary, fontWeight = FontWeight.SemiBold)
+                    Text(if (formState.imageUrl.isBlank()) "Tomar foto" else "Cambiar foto", color = BrandSecondary, fontWeight = FontWeight.SemiBold)
                 }
 
                 OutlinedButton(

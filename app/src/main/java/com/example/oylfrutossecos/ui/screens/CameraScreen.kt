@@ -1,6 +1,9 @@
 package com.example.oylfrutossecos.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -20,14 +23,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,10 +53,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
@@ -66,14 +71,37 @@ fun CameraScreen(
     productViewModel: ProductViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var flashEnabled by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
 
-    // Launcher nativo oficial de Android para capturar imagen con la cámara del dispositivo
+    // Launcher nativo de Android para capturar una imagen con la cámara del dispositivo
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
-        capturedBitmap = bitmap
+        if (bitmap != null) capturedBitmap = bitmap
+    }
+
+    // Como el Manifest declara el permiso CAMERA, Android exige que esté concedido
+    // antes de abrir la cámara; si no, lanza SecurityException.
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            cameraLauncher.launch(null)
+        } else {
+            Toast.makeText(
+                context,
+                "Se necesita el permiso de cámara para fotografiar productos",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    fun openCamera() {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+        if (granted) cameraLauncher.launch(null) else permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
     Scaffold(
@@ -81,7 +109,7 @@ fun CameraScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Cámara de Producto",
+                        text = "Foto del Producto",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
@@ -89,18 +117,9 @@ fun CameraScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
                             tint = Color.White
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { flashEnabled = !flashEnabled }) {
-                        Icon(
-                            imageVector = Icons.Default.FlashOn,
-                            contentDescription = "Flash",
-                            tint = if (flashEnabled) BrandAccent else Color.White.copy(alpha = 0.5f)
                         )
                     }
                 },
@@ -150,6 +169,7 @@ fun CameraScreen(
                             Image(
                                 bitmap = capturedBitmap!!.asImageBitmap(),
                                 contentDescription = "Foto capturada",
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -200,12 +220,12 @@ fun CameraScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "Visor Cámara OYL",
+                                text = "Sin foto todavía",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Toca el botón para disparar",
+                                text = "Toca el botón para abrir la cámara",
                                 color = Color.White.copy(alpha = 0.6f),
                                 fontSize = 12.sp
                             )
@@ -239,7 +259,7 @@ fun CameraScreen(
                                 shadowElevation = 8.dp
                             ) {
                                 IconButton(
-                                    onClick = { cameraLauncher.launch(null) },
+                                    onClick = { openCamera() },
                                     modifier = Modifier.fillMaxSize()
                                 ) {
                                     Icon(
@@ -254,7 +274,7 @@ fun CameraScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Presiona para abrir la cámara nativa",
+                            text = "Abrir cámara",
                             color = Color.White.copy(alpha = 0.7f),
                             fontSize = 12.sp
                         )
@@ -265,7 +285,7 @@ fun CameraScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             OutlinedButton(
-                                onClick = { cameraLauncher.launch(null) },
+                                onClick = { openCamera() },
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
@@ -283,21 +303,35 @@ fun CameraScreen(
 
                             Button(
                                 onClick = {
-                                    // Guarda referencia en el formulario
-                                    productViewModel.onFormFieldChanged(imageUrl = "content://camera_captured_${System.currentTimeMillis()}")
-                                    onNavigateBack()
+                                    capturedBitmap?.let { bitmap ->
+                                        isSaving = true
+                                        // El ViewModel guarda la foto en disco y deja la ruta en el formulario
+                                        productViewModel.onPhotoCaptured(bitmap) {
+                                            isSaving = false
+                                            onNavigateBack()
+                                        }
+                                    }
                                 },
+                                enabled = !isSaving,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = BrandSecondary)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                if (isSaving) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Confirmar")
                             }

@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.oylfrutossecos.ui.components.ProductImage
 import androidx.compose.ui.unit.sp
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
@@ -154,18 +155,17 @@ fun ProductDetailScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Surface(
-                            modifier = Modifier.size(90.dp),
+                            modifier = Modifier.size(120.dp),
                             shape = CircleShape,
                             color = Color.White.copy(alpha = 0.2f)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Spa,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(54.dp)
-                                )
-                            }
+                            ProductImage(
+                                imagePath = product.imageUrl,
+                                contentDescription = product.name,
+                                placeholderTint = Color.White,
+                                placeholderSize = 54.dp,
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
                         Spacer(modifier = Modifier.height(10.dp))
                         Surface(

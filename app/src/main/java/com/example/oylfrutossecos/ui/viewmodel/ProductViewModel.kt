@@ -1,16 +1,20 @@
 package com.example.oylfrutossecos.ui.viewmodel
 
 import android.app.Application
+import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.oylfrutossecos.data.local.ImageStorage
 import com.example.oylfrutossecos.data.model.Category
 import com.example.oylfrutossecos.data.model.Product
 import com.example.oylfrutossecos.data.repository.ProductRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ProductFormState(
     val id: Long = 0,
@@ -164,6 +168,20 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /**
+     * Recibe la foto tomada con la cámara, la guarda en el almacenamiento interno
+     * y deja la ruta del archivo en el formulario para persistirla al guardar el producto.
+     */
+    fun onPhotoCaptured(bitmap: Bitmap, onSaved: () -> Unit = {}) {
+        viewModelScope.launch {
+            val path = withContext(Dispatchers.IO) {
+                ImageStorage.saveBitmap(getApplication(), bitmap)
+            }
+            _formState.update { it.copy(imageUrl = path) }
+            onSaved()
+        }
+    }
+
     fun saveProduct(onSuccess: (Long) -> Unit) {
         val state = _formState.value
         var hasError = false
@@ -218,7 +236,9 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteProduct(id: Long, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            val imagePath = _formState.value.imageUrl
             repository.deleteProduct(id)
+            withContext(Dispatchers.IO) { ImageStorage.deleteImage(imagePath) }
             loadData()
             onSuccess()
         }
