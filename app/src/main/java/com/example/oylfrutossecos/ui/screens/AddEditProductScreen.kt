@@ -20,6 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
@@ -55,6 +58,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.oylfrutossecos.ui.components.FieldErrorIcon
+import com.example.oylfrutossecos.ui.components.FieldSupportText
 import com.example.oylfrutossecos.ui.components.ProductImage
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
@@ -213,10 +218,13 @@ fun AddEditProductScreen(
             OutlinedTextField(
                 value = formState.name,
                 onValueChange = { productViewModel.onFormFieldChanged(name = it) },
-                label = { Text("Nombre del Producto *") },
+                label = { Text("Nombre del producto *") },
+                leadingIcon = { Icon(Icons.Default.Inventory2, contentDescription = null, tint = BrandPrimary) },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 isError = formState.nameError != null,
-                supportingText = { formState.nameError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+                supportingText = { FieldSupportText(formState.nameError) },
+                trailingIcon = { FieldErrorIcon(formState.nameError) },
                 shape = RoundedCornerShape(12.dp)
             )
 
@@ -267,7 +275,8 @@ fun AddEditProductScreen(
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = formState.priceError != null,
-                    supportingText = { formState.priceError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+                    supportingText = { FieldSupportText(formState.priceError) },
+                    trailingIcon = { FieldErrorIcon(formState.priceError) },
                     shape = RoundedCornerShape(12.dp)
                 )
 
@@ -279,7 +288,8 @@ fun AddEditProductScreen(
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = formState.stockError != null,
-                    supportingText = { formState.stockError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+                    supportingText = { FieldSupportText(formState.stockError) },
+                    trailingIcon = { FieldErrorIcon(formState.stockError) },
                     shape = RoundedCornerShape(12.dp)
                 )
             }
@@ -301,6 +311,7 @@ fun AddEditProductScreen(
                     value = formState.origin,
                     onValueChange = { productViewModel.onFormFieldChanged(origin = it) },
                     label = { Text("Origen / Valle") },
+                    leadingIcon = { Icon(Icons.Default.Place, contentDescription = null, tint = BrandPrimary) },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -310,8 +321,13 @@ fun AddEditProductScreen(
             OutlinedTextField(
                 value = formState.barcode,
                 onValueChange = { productViewModel.onFormFieldChanged(barcode = it) },
-                label = { Text("Código de Barras / SKU") },
+                label = { Text("Código de barras / SKU") },
+                leadingIcon = { Icon(Icons.Default.QrCode, contentDescription = null, tint = BrandPrimary) },
                 modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                isError = formState.barcodeError != null,
+                supportingText = { FieldSupportText(formState.barcodeError, helper = "Opcional: si lo dejas vacío se genera uno") },
+                trailingIcon = { FieldErrorIcon(formState.barcodeError) },
                 shape = RoundedCornerShape(12.dp)
             )
 
@@ -366,7 +382,7 @@ fun AddEditProductScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (formState.id > 0) "ACTUALIZAR EN SQLITE" else "GUARDAR EN BASE DE DATOS",
+                        text = if (formState.id > 0) "Guardar cambios" else "Guardar producto",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )

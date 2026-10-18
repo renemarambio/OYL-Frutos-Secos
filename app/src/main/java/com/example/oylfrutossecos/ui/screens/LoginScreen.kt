@@ -50,6 +50,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.oylfrutossecos.ui.components.FieldErrorIcon
+import com.example.oylfrutossecos.ui.components.FieldSupportText
 import androidx.compose.ui.unit.sp
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
@@ -149,7 +151,8 @@ fun LoginScreen(
                         value = uiState.email,
                         onValueChange = { authViewModel.onEmailChanged(it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Correo Electrónico") },
+                        label = { Text("Correo electrónico") },
+                        placeholder = { Text("usuario@oylfrutossecos.cl") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Email,
@@ -158,15 +161,8 @@ fun LoginScreen(
                             )
                         },
                         isError = uiState.emailError != null,
-                        supportingText = {
-                            if (uiState.emailError != null) {
-                                Text(
-                                    text = uiState.emailError!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        },
+                        supportingText = { FieldSupportText(uiState.emailError) },
+                        trailingIcon = { FieldErrorIcon(uiState.emailError) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
@@ -201,15 +197,7 @@ fun LoginScreen(
                         },
                         visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         isError = uiState.passwordError != null,
-                        supportingText = {
-                            if (uiState.passwordError != null) {
-                                Text(
-                                    text = uiState.passwordError!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        },
+                        supportingText = { FieldSupportText(uiState.passwordError) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,

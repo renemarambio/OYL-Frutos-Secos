@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.oylfrutossecos.data.model.User
 import com.example.oylfrutossecos.data.repository.AuthRepository
+import com.example.oylfrutossecos.domain.validation.Validators
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,8 +12,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class LoginUiState(
-    val email: String = "admin@oylfrutossecos.cl",
-    val password: String = "Duoc2026!",
+    val email: String = "",
+    val password: String = "",
     val isPasswordVisible: Boolean = false,
     val emailError: String? = null,
     val passwordError: String? = null,
@@ -58,25 +59,10 @@ class AuthViewModel : ViewModel() {
         val email = _uiState.value.email.trim()
         val password = _uiState.value.password
 
-        var hasError = false
-        var emailError: String? = null
-        var passwordError: String? = null
-
-        if (email.isBlank()) {
-            emailError = "El correo electrónico es obligatorio"
-            hasError = true
-        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailError = "Ingresa un formato de correo válido (ej: usuario@correo.com)"
-            hasError = true
-        }
-
-        if (password.isBlank()) {
-            passwordError = "La contraseña es obligatoria"
-            hasError = true
-        } else if (password.length < 6) {
-            passwordError = "La contraseña debe tener al menos 6 caracteres"
-            hasError = true
-        }
+        // Validación centralizada en domain/validation/Validators
+        val emailError = Validators.validateEmail(email)
+        val passwordError = Validators.validatePassword(password)
+        val hasError = emailError != null || passwordError != null
 
         if (hasError) {
             _uiState.update { it.copy(emailError = emailError, passwordError = passwordError) }

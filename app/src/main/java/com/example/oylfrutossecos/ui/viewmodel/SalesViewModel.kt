@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.oylfrutossecos.data.model.CartItem
 import com.example.oylfrutossecos.data.model.Sale
 import com.example.oylfrutossecos.data.repository.SalesRepository
+import com.example.oylfrutossecos.domain.validation.Validators
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,14 +14,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class CheckoutFormState(
-    val customerName: String = "Oscar Yáñez",
-    val customerEmail: String = "oscar.yanez@oylfrutossecos.cl",
-    val customerPhone: String = "+56 9 9123 4567",
-    val customerAddress: String = "Av. Providencia 1820, Oficina 402",
+    val customerName: String = "",
+    val customerEmail: String = "",
+    val customerPhone: String = "",
+    val customerAddress: String = "",
     val deliveryZone: String = "Santiago Centro & Providencia",
     val paymentMethod: String = "Tarjeta Débito/Crédito",
     val nameError: String? = null,
     val emailError: String? = null,
+    val phoneError: String? = null,
     val addressError: String? = null,
     val isProcessing: Boolean = false,
     val lastCompletedSale: Sale? = null
@@ -76,6 +78,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 paymentMethod = paymentMethod ?: current.paymentMethod,
                 nameError = if (name != null) null else current.nameError,
                 emailError = if (email != null) null else current.emailError,
+                phoneError = if (phone != null) null else current.phoneError,
                 addressError = if (address != null) null else current.addressError
             )
         }
@@ -88,28 +91,16 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         onError: (String) -> Unit
     ) {
         val form = _checkoutForm.value
-        var hasError = false
-        var nameErr: String? = null
-        var emailErr: String? = null
-        var addrErr: String? = null
+        // Validación centralizada en domain/validation/Validators
+        val nameErr = Validators.validatePersonName(form.customerName)
+        val emailErr = Validators.validateEmail(form.customerEmail)
+        val phoneErr = Validators.validateChileanPhone(form.customerPhone)
+        val addrErr = Validators.validateAddress(form.customerAddress)
 
-        if (form.customerName.isBlank()) {
-            nameErr = "El nombre del cliente es obligatorio"
-            hasError = true
-        }
-
-        if (form.customerEmail.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(form.customerEmail).matches()) {
-            emailErr = "Ingresa un correo electrónico de confirmación válido"
-            hasError = true
-        }
-
-        if (form.customerAddress.isBlank()) {
-            addrErr = "La dirección de entrega es obligatoria"
-            hasError = true
-        }
-
-        if (hasError) {
-            _checkoutForm.update { it.copy(nameError = nameErr, emailError = emailErr, addressError = addrErr) }
+        if (listOf(nameErr, emailErr, phoneErr, addrErr).any { it != null }) {
+            _checkoutForm.update {
+                it.copy(nameError = nameErr, emailError = emailErr, phoneError = phoneErr, addressError = addrErr)
+            }
             return
         }
 
@@ -126,7 +117,8 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             result.onSuccess { sale ->
-                _checkoutForm.update { it.copy(isProcessing = false, lastCompletedSale = sale) }
+                // Se limpia el formulario para la siguiente venta
+                _checkoutForm.update { CheckoutFormState(lastCompletedSale = sale) }
                 loadSales()
                 onSuccess(sale)
             }.onFailure { error ->

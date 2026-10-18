@@ -8,6 +8,7 @@ import com.example.oylfrutossecos.data.local.ImageStorage
 import com.example.oylfrutossecos.data.model.Category
 import com.example.oylfrutossecos.data.model.Product
 import com.example.oylfrutossecos.data.repository.ProductRepository
+import com.example.oylfrutossecos.domain.validation.Validators
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +32,7 @@ data class ProductFormState(
     val nameError: String? = null,
     val priceError: String? = null,
     val stockError: String? = null,
+    val barcodeError: String? = null,
     val isSaving: Boolean = false
 )
 
@@ -163,7 +165,8 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                 imageUrl = imageUrl ?: current.imageUrl,
                 nameError = if (name != null) null else current.nameError,
                 priceError = if (price != null) null else current.priceError,
-                stockError = if (stock != null) null else current.stockError
+                stockError = if (stock != null) null else current.stockError,
+                barcodeError = if (barcode != null) null else current.barcodeError
             )
         }
     }
@@ -184,32 +187,21 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     fun saveProduct(onSuccess: (Long) -> Unit) {
         val state = _formState.value
-        var hasError = false
-        var nameErr: String? = null
-        var priceErr: String? = null
-        var stockErr: String? = null
+        // Validación centralizada en domain/validation/Validators
+        val nameErr = Validators.validateProductName(state.name)
+        val priceErr = Validators.validatePrice(state.price)
+        val stockErr = Validators.validateStock(state.stock)
+        val barcodeErr = Validators.validateBarcode(state.barcode)
 
-        if (state.name.isBlank()) {
-            nameErr = "El nombre del producto es obligatorio"
-            hasError = true
-        }
-
-        val priceVal = state.price.toDoubleOrNull()
-        if (priceVal == null || priceVal <= 0) {
-            priceErr = "Ingresa un precio válido mayor a 0"
-            hasError = true
-        }
-
-        val stockVal = state.stock.toIntOrNull()
-        if (stockVal == null || stockVal < 0) {
-            stockErr = "Ingresa una cantidad de stock válida"
-            hasError = true
-        }
-
-        if (hasError) {
-            _formState.update { it.copy(nameError = nameErr, priceError = priceErr, stockError = stockErr) }
+        if (listOf(nameErr, priceErr, stockErr, barcodeErr).any { it != null }) {
+            _formState.update {
+                it.copy(nameError = nameErr, priceError = priceErr, stockError = stockErr, barcodeError = barcodeErr)
+            }
             return
         }
+
+        val priceVal = state.price.trim().toDouble()
+        val stockVal = state.stock.trim().toInt()
 
         viewModelScope.launch {
             _formState.update { it.copy(isSaving = true) }
@@ -217,8 +209,8 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                 id = state.id,
                 name = state.name.trim(),
                 category = state.category,
-                price = priceVal ?: 0.0,
-                stock = stockVal ?: 0,
+                price = priceVal,
+                stock = stockVal,
                 unit = state.unit.ifBlank { "kg" },
                 description = state.description.trim(),
                 ingredients = state.ingredients.trim(),

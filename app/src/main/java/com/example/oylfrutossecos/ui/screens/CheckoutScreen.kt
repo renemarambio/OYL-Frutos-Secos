@@ -61,6 +61,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import com.example.oylfrutossecos.ui.components.FieldErrorIcon
+import com.example.oylfrutossecos.ui.components.FieldSupportText
 import com.example.oylfrutossecos.data.model.Sale
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
@@ -212,7 +216,8 @@ fun CheckoutScreen(
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = BrandPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         isError = formState.nameError != null,
-                        supportingText = { formState.nameError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+                        supportingText = { FieldSupportText(formState.nameError) },
+                        trailingIcon = { FieldErrorIcon(formState.nameError) },
                         shape = RoundedCornerShape(12.dp)
                     )
 
@@ -225,7 +230,8 @@ fun CheckoutScreen(
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = BrandPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         isError = formState.emailError != null,
-                        supportingText = { formState.emailError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+                        supportingText = { FieldSupportText(formState.emailError) },
+                        trailingIcon = { FieldErrorIcon(formState.emailError) },
                         shape = RoundedCornerShape(12.dp)
                     )
 
@@ -234,9 +240,15 @@ fun CheckoutScreen(
                     OutlinedTextField(
                         value = formState.customerPhone,
                         onValueChange = { salesViewModel.onCheckoutFieldChanged(phone = it) },
-                        label = { Text("Teléfono de Contacto") },
+                        label = { Text("Teléfono de contacto") },
+                        placeholder = { Text("+56 9 1234 5678") },
                         leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = BrandPrimary) },
                         modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        isError = formState.phoneError != null,
+                        supportingText = { FieldSupportText(formState.phoneError) },
+                        trailingIcon = { FieldErrorIcon(formState.phoneError) },
                         shape = RoundedCornerShape(12.dp)
                     )
 
@@ -249,7 +261,8 @@ fun CheckoutScreen(
                         leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, tint = BrandPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         isError = formState.addressError != null,
-                        supportingText = { formState.addressError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+                        supportingText = { FieldSupportText(formState.addressError) },
+                        trailingIcon = { FieldErrorIcon(formState.addressError) },
                         shape = RoundedCornerShape(12.dp)
                     )
                 }
