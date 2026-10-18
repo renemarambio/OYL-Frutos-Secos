@@ -1,6 +1,11 @@
 package com.example.oylfrutossecos.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -27,6 +32,8 @@ import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 import com.example.oylfrutossecos.ui.viewmodel.SalesViewModel
 
+private const val TRANSITION_MS = 350
+
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
@@ -35,9 +42,27 @@ fun AppNavGraph(
     cartViewModel: CartViewModel = viewModel(),
     salesViewModel: SalesViewModel = viewModel()
 ) {
+    // Transiciones entre pantallas: la nueva entra deslizándose desde la derecha
+    // y al volver atrás la anterior regresa desde la izquierda (patrón Material).
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route
+        startDestination = Screen.Splash.route,
+        enterTransition = {
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(TRANSITION_MS)) +
+                    fadeIn(tween(TRANSITION_MS))
+        },
+        exitTransition = {
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(TRANSITION_MS)) { it / 4 } +
+                    fadeOut(tween(TRANSITION_MS))
+        },
+        popEnterTransition = {
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(TRANSITION_MS)) { it / 4 } +
+                    fadeIn(tween(TRANSITION_MS))
+        },
+        popExitTransition = {
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(TRANSITION_MS)) +
+                    fadeOut(tween(TRANSITION_MS))
+        }
     ) {
         // 1. Splash Screen
         composable(Screen.Splash.route) {
@@ -105,7 +130,8 @@ fun AppNavGraph(
             )
         ) { backStackEntry ->
             val category = backStackEntry.arguments?.getString("category") ?: "Todos"
-            productViewModel.onCategorySelected(category)
+            // Se filtra una sola vez al entrar (no en cada recomposición)
+            LaunchedEffect(category) { productViewModel.onCategorySelected(category) }
 
             ProductCatalogScreen(
                 productViewModel = productViewModel,

@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.oylfrutossecos.ui.components.CartIconButton
 import androidx.compose.ui.unit.sp
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
@@ -151,23 +152,7 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToCart) {
-                        BadgedBox(
-                            badge = {
-                                if (cartCount > 0) {
-                                    Badge(containerColor = BrandAccent, contentColor = Color.Black) {
-                                        Text(cartCount.toString(), fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = "Carrito",
-                                tint = Color.White
-                            )
-                        }
-                    }
+                    CartIconButton(cartCount = cartCount, onClick = onNavigateToCart)
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,

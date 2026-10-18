@@ -1,5 +1,11 @@
 package com.example.oylfrutossecos.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -374,11 +380,24 @@ fun ProductDetailScreen(
                                         Icon(imageVector = Icons.Default.Remove, contentDescription = "Menos")
                                     }
 
-                                    Text(
-                                        text = "$quantity ${product.unit}",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        modifier = Modifier.padding(horizontal = 14.dp)
-                                    )
+                                    // El número se desliza hacia arriba o abajo según se sume o reste
+                                    AnimatedContent(
+                                        targetState = quantity,
+                                        transitionSpec = {
+                                            if (targetState > initialState) {
+                                                (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut())
+                                            } else {
+                                                (slideInVertically { -it } + fadeIn()) togetherWith (slideOutVertically { it } + fadeOut())
+                                            }
+                                        },
+                                        label = "quantity"
+                                    ) { qty ->
+                                        Text(
+                                            text = "$qty ${product.unit}",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            modifier = Modifier.padding(horizontal = 14.dp)
+                                        )
+                                    }
 
                                     OutlinedIconButton(
                                         onClick = { if (quantity < product.stock) quantity++ },

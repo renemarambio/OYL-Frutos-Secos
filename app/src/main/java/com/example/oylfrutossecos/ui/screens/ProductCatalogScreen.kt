@@ -60,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.oylfrutossecos.ui.components.CartIconButton
 import com.example.oylfrutossecos.ui.components.ProductImage
 import androidx.compose.ui.unit.sp
 import com.example.oylfrutossecos.data.model.Product
@@ -113,23 +114,7 @@ fun ProductCatalogScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToCart) {
-                        BadgedBox(
-                            badge = {
-                                if (cartCount > 0) {
-                                    Badge(containerColor = BrandAccent, contentColor = Color.Black) {
-                                        Text(cartCount.toString(), fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = "Carrito",
-                                tint = Color.White
-                            )
-                        }
-                    }
+                    CartIconButton(cartCount = cartCount, onClick = onNavigateToCart)
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = BrandPrimary)
             )
@@ -252,6 +237,8 @@ fun ProductCatalogScreen(
                     items(products, key = { it.id }) { product ->
                         ProductItemCard(
                             product = product,
+                            // Anima la aparición/reordenamiento al filtrar o buscar
+                            modifier = Modifier.animateItem(),
                             onCardClick = { onNavigateToDetail(product.id) },
                             onAddToCart = {
                                 cartViewModel.addToCart(product, 1)
@@ -270,11 +257,12 @@ fun ProductCatalogScreen(
 @Composable
 fun ProductItemCard(
     product: Product,
+    modifier: Modifier = Modifier,
     onCardClick: () -> Unit,
     onAddToCart: () -> Unit
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .clickable { onCardClick() },
