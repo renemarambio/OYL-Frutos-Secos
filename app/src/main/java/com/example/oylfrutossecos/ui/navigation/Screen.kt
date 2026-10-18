@@ -15,7 +15,10 @@ sealed class Screen(val route: String) {
         fun createRoute(productId: Long = 0L) = "add_edit_product?productId=$productId"
     }
     object Camera : Screen("camera")
-    object BarcodeScanner : Screen("barcode_scanner")
+    object BarcodeScanner : Screen("barcode_scanner?pickMode={pickMode}") {
+        // pickMode = true: el código leído se devuelve al formulario de producto
+        fun createRoute(pickMode: Boolean = false) = "barcode_scanner?pickMode=$pickMode"
+    }
     object Cart : Screen("cart")
     object Checkout : Screen("checkout")
     object DeliveryMap : Screen("delivery_map")

@@ -73,7 +73,7 @@ fun AppNavGraph(
                 onNavigateToCategories = { navController.navigate(Screen.CategoryList.route) },
                 onNavigateToAddProduct = { navController.navigate(Screen.AddEditProduct.createRoute(0L)) },
                 onNavigateToCamera = { navController.navigate(Screen.Camera.route) },
-                onNavigateToScanner = { navController.navigate(Screen.BarcodeScanner.route) },
+                onNavigateToScanner = { navController.navigate(Screen.BarcodeScanner.createRoute()) },
                 onNavigateToCart = { navController.navigate(Screen.Cart.route) },
                 onNavigateToDeliveryMap = { navController.navigate(Screen.DeliveryMap.route) },
                 onNavigateToSalesHistory = { navController.navigate(Screen.SalesHistory.route) },
@@ -156,7 +156,7 @@ fun AppNavGraph(
                 productId = productId,
                 productViewModel = productViewModel,
                 onNavigateToCamera = { navController.navigate(Screen.Camera.route) },
-                onNavigateToScanner = { navController.navigate(Screen.BarcodeScanner.route) },
+                onNavigateToScanner = { navController.navigate(Screen.BarcodeScanner.createRoute(pickMode = true)) },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -170,9 +170,19 @@ fun AppNavGraph(
         }
 
         // 9. Barcode Scanner Screen
-        composable(Screen.BarcodeScanner.route) {
+        composable(
+            route = Screen.BarcodeScanner.route,
+            arguments = listOf(
+                navArgument("pickMode") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val pickMode = backStackEntry.arguments?.getBoolean("pickMode") ?: false
             BarcodeScannerScreen(
                 productViewModel = productViewModel,
+                pickMode = pickMode,
                 onNavigateToProductDetail = { prodId ->
                     navController.navigate(Screen.ProductDetail.createRoute(prodId))
                 },

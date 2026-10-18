@@ -46,6 +46,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,11 +76,19 @@ fun AddEditProductScreen(
 
     val categories = listOf("Frutos Secos", "Semillas", "Deshidratados", "Mixes Especiales")
 
+    // Se inicializa el formulario solo la primera vez que se abre la pantalla.
+    // rememberSaveable conserva el valor al ir a la cámara o al escáner y volver,
+    // así no se borra lo que el usuario ya había escrito.
+    var formInitialized by rememberSaveable(productId) { mutableStateOf(false) }
+
     LaunchedEffect(productId) {
-        if (productId > 0) {
-            productViewModel.loadProductById(productId)
-        } else {
-            productViewModel.resetForm()
+        if (!formInitialized) {
+            if (productId > 0) {
+                productViewModel.loadProductById(productId)
+            } else {
+                productViewModel.resetForm()
+            }
+            formInitialized = true
         }
     }
 
@@ -87,7 +96,7 @@ fun AddEditProductScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("¿Eliminar producto?") },
-            text = { Text("Esta acción eliminará el producto de la base de datos local SQLite de forma permanente.") },
+            text = { Text("Esta acción eliminará el producto del inventario de forma permanente.") },
             confirmButton = {
                 TextButton(
                     onClick = {

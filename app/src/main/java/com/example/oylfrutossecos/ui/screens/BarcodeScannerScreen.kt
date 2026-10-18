@@ -13,6 +13,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -73,13 +74,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.example.oylfrutossecos.data.local.AppDatabaseHelper
 import com.example.oylfrutossecos.data.model.Product
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
@@ -87,6 +88,8 @@ import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusError
 import com.example.oylfrutossecos.ui.theme.StatusWarning
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
+import com.google.zxing.BarcodeFormat
+import com.journeyapps.barcodescanner.BarcodeEncoder
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.Dispatchers
@@ -102,6 +105,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun BarcodeScannerScreen(
     productViewModel: ProductViewModel,
+    pickMode: Boolean = false,
     onNavigateToProductDetail: (Long) -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -119,28 +123,28 @@ fun BarcodeScannerScreen(
     var scanMessage by remember { mutableStateOf<String?>(null) }
     var scanMessageType by remember { mutableStateOf("info") } // "success", "warning", "error", "info"
 
-    // Instancia de base de datos SQLite nativa
-    val dbHelper = remember { AppDatabaseHelper.getInstance(context) }
-
-    // Función auxiliar para consultar SQLite a partir de la cadena leída del QR
+    // Procesa el código leído. La consulta a la base de datos la hace el ViewModel (MVVM).
     fun processScannedResult(code: String) {
-        scannedCode = code.trim()
+        val cleanCode = code.trim()
+        if (pickMode) {
+            // Modo formulario: devolver el código leído al formulario de producto
+            productViewModel.onFormFieldChanged(barcode = cleanCode)
+            onNavigateBack()
+            return
+        }
+        scannedCode = cleanCode
         isSearchingDb = true
         scanMessage = null
 
-        coroutineScope.launch(Dispatchers.IO) {
-            // Consultar base de datos SQLite local
-            val product = dbHelper.getProductByCodeOrSku(scannedCode)
-            withContext(Dispatchers.Main) {
-                isSearchingDb = false
-                detectedProduct = product
-                if (product != null) {
-                    scanMessageType = "success"
-                    scanMessage = "¡Producto encontrado en SQLite: ${product.name}!"
-                } else {
-                    scanMessageType = "warning"
-                    scanMessage = "Código leído: '$scannedCode', pero no existe en el inventario SQLite."
-                }
+        productViewModel.findProductByCode(cleanCode) { product ->
+            isSearchingDb = false
+            detectedProduct = product
+            if (product != null) {
+                scanMessageType = "success"
+                scanMessage = "Producto encontrado: ${product.name}"
+            } else {
+                scanMessageType = "warning"
+                scanMessage = "Se leyó el código '$cleanCode', pero no está registrado en el inventario."
             }
         }
     }
@@ -229,7 +233,7 @@ fun BarcodeScannerScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Lector de Códigos QR (ZXing)",
+                        text = if (pickMode) "Escanear código del producto" else "Escáner de códigos",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
@@ -515,13 +519,20 @@ fun BarcodeScannerScreen(
                         value = scannedCode,
                         onValueChange = { code ->
                             scannedCode = code
-                            if (code.isNotBlank()) processScannedResult(code)
+                            // En modo búsqueda se consulta mientras se escribe; en modo formulario se confirma con el botón
+                            if (code.isNotBlank() && !pickMode) processScannedResult(code)
                         },
                         label = { Text("Código QR / SKU leído manualmente") },
                         placeholder = { Text("Ej: PROD-001 o 780998810001") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {
-                            Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = BrandPrimary)
+                            IconButton(onClick = { if (scannedCode.isNotBlank()) processScannedResult(scannedCode) }) {
+                                Icon(
+                                    imageVector = if (pickMode) Icons.Default.CheckCircle else Icons.Default.Search,
+                                    contentDescription = if (pickMode) "Usar este código" else "Buscar",
+                                    tint = BrandPrimary
+                                )
+                            }
                         },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp)
@@ -557,43 +568,28 @@ fun BarcodeScannerScreen(
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                val gridSize = 9
-                                val cellW = size.width / gridSize
-                                val cellH = size.height / gridSize
-
-                                for (i in 0 until gridSize) {
-                                    for (j in 0 until gridSize) {
-                                        val isFilled = (i % 2 == 0 && j % 3 == 0) ||
-                                                (i < 3 && j < 3) ||
-                                                (i > 5 && j < 3) ||
-                                                (i < 3 && j > 5) ||
-                                                ((i + j) % 4 == 1)
-
-                                        if (isFilled) {
-                                            drawRect(
-                                                color = Color.Black,
-                                                topLeft = Offset(i * cellW, j * cellH),
-                                                size = androidx.compose.ui.geometry.Size(cellW * 0.9f, cellH * 0.9f)
-                                            )
-                                        }
+                            // QR real generado con ZXing a partir del código del producto
+                            val qrBitmap = remember(selectedProductForQr?.barcode) {
+                                selectedProductForQr?.barcode
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.let { code ->
+                                        runCatching {
+                                            BarcodeEncoder().encodeBitmap(code, BarcodeFormat.QR_CODE, 512, 512)
+                                        }.getOrNull()
                                     }
-                                }
                             }
-
-                            Surface(
-                                modifier = Modifier.size(36.dp),
-                                shape = CircleShape,
-                                color = BrandPrimary
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Spa,
-                                        contentDescription = null,
-                                        tint = BrandAccent,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
+                            if (qrBitmap != null) {
+                                Image(
+                                    bitmap = qrBitmap.asImageBitmap(),
+                                    contentDescription = "Código QR del producto",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Text(
+                                    text = "Este producto no tiene código asignado",
+                                    textAlign = TextAlign.Center,
+                                    color = Color.Gray
+                                )
                             }
                         }
                     }
