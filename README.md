@@ -14,7 +14,7 @@ La app permite al operador de la tienda **registrar productos con foto y código
 
 ## Autor
 
-**Martin Fariña** (trabajo individual) · GitHub: [@renemarambio](https://github.com/renemarambio)
+**Rene Marambio** (trabajo individual) · GitHub: [@renemarambio](https://github.com/renemarambio)
 
 **Asignatura:** DSY1105 – Desarrollo de Aplicaciones Móviles · **Sección / Equipo N°:** _(completar)_
 
