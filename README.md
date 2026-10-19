@@ -16,7 +16,7 @@ La app permite al operador de la tienda **registrar productos con foto y código
 
 **Rene Marambio** (trabajo individual) · GitHub: [@renemarambio](https://github.com/renemarambio)
 
-**Asignatura:** DSY1105 – Desarrollo de Aplicaciones Móviles · **Sección / Equipo N°:** _(completar)_
+**Asignatura:** DSY1105 – Desarrollo de Aplicaciones Móviles · **Sección:** 004D
 
 **Planificación (ClickUp):** [Tablero de desarrollo](https://sharing.clickup.com/90131413814/b/h/6-901329233759-2/8962b8194791d64)
 
