@@ -266,13 +266,13 @@ fun BarcodeScannerScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("Escanear Cámara (ZXing)", fontWeight = FontWeight.Bold) },
+                    text = { Text("Escanear", fontWeight = FontWeight.Bold) },
                     icon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("Generar Etiqueta QR", fontWeight = FontWeight.Bold) },
+                    text = { Text("Etiqueta QR", fontWeight = FontWeight.Bold) },
                     icon = { Icon(Icons.Default.QrCode, contentDescription = null) }
                 )
             }
@@ -287,7 +287,7 @@ fun BarcodeScannerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Sistema de Lectura de Códigos QR para Inventario OYL",
+                        text = "Escanea el código del producto",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center
                     )
@@ -295,7 +295,7 @@ fun BarcodeScannerScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Pulsa el botón para abrir la cámara nativa con ZXing. Al detectar el código, se consultará automáticamente la base de datos SQLite.",
+                        text = "Apunta la cámara al código QR o de barras del envase para ver el producto y su stock.",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center
@@ -320,7 +320,7 @@ fun BarcodeScannerScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "ABRIR CÁMARA ESCÁNER QR",
+                            text = "Abrir escáner",
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                             fontSize = 15.sp
@@ -380,7 +380,7 @@ fun BarcodeScannerScreen(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Consultando base de datos SQLite...",
+                                text = "Buscando producto...",
                                 style = MaterialTheme.typography.bodySmall.copy(color = BrandPrimary)
                             )
                         }
@@ -548,7 +548,7 @@ fun BarcodeScannerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Generador de Códigos QR para Etiquetado de Envases OYL",
+                        text = "Etiqueta QR para envases",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center
                     )

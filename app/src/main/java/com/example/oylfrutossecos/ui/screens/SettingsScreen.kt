@@ -88,14 +88,14 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
             title = { Text("¿Restablecer datos iniciales?") },
-            text = { Text("Se restablecerá la base de datos SQLite con los 14 productos mock de frutos secos originales y las ventas de demostración.") },
+            text = { Text("Se borrarán los cambios y se volverá al catálogo y ventas de ejemplo iniciales.") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showResetDialog = false
                         productViewModel.resetToDefaults {
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Base de datos SQLite restablecida a valores iniciales.")
+                                snackbarHostState.showSnackbar("Datos restablecidos a los valores iniciales")
                             }
                         }
                     }
@@ -242,7 +242,7 @@ fun SettingsScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = StatusWarning)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Restablecer a Mock Data Inicial", color = StatusWarning, fontWeight = FontWeight.Bold)
+                        Text("Restablecer datos de ejemplo", color = StatusWarning, fontWeight = FontWeight.Bold)
                     }
                 }
             }

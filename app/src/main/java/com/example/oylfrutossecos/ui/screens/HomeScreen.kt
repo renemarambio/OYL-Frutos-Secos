@@ -109,12 +109,11 @@ fun HomeScreen(
         QuickActionItem("Categorías", "4 grupos activos", Icons.Default.Category, null, BrandSecondary, onNavigateToCategories),
         QuickActionItem("Nuevo Producto", "Registro de stock", Icons.Default.AddBusiness, null, BrandPrimary, onNavigateToAddProduct),
         QuickActionItem("Mi Carrito", "$cartCount ítems listos", Icons.Default.ShoppingCart, if (cartCount > 0) cartCount.toString() else null, BrandAccent, onNavigateToCart),
-        QuickActionItem("Escanear QR/Barra", "Lectura de stock", Icons.Default.QrCodeScanner, null, BrandPrimary, onNavigateToScanner),
-        QuickActionItem("Cámara Nativa", "Foto de producto", Icons.Default.CameraAlt, null, BrandSecondary, onNavigateToCamera),
+        QuickActionItem("Escanear código", "Buscar por QR o barra", Icons.Default.QrCodeScanner, null, BrandPrimary, onNavigateToScanner),
         QuickActionItem("Mapa Reparto", "Zonas de despacho", Icons.Default.LocalShipping, null, BrandSecondary, onNavigateToDeliveryMap),
         QuickActionItem("Historial Ventas", "${sales.size} órdenes en BD", Icons.Default.History, null, BrandPrimary, onNavigateToSalesHistory),
-        QuickActionItem("Configuración", "Ajustes y Mock Data", Icons.Default.Settings, null, Color.Gray, onNavigateToSettings),
-        QuickActionItem("Soporte DSY1105", "Docente & Guía", Icons.Default.HelpOutline, null, BrandPrimary, onNavigateToSupport)
+        QuickActionItem("Ajustes", "Cuenta y datos", Icons.Default.Settings, null, Color.Gray, onNavigateToSettings),
+        QuickActionItem("Ayuda", "Preguntas y contacto", Icons.Default.HelpOutline, null, BrandPrimary, onNavigateToSupport)
     )
 
     Scaffold(
@@ -311,7 +310,7 @@ fun HomeScreen(
                     MetricCard(
                         title = "Ventas BD",
                         value = sales.size.toString(),
-                        subtitle = "Registros SQLite",
+                        subtitle = "Ventas totales",
                         icon = Icons.Default.History,
                         tint = BrandSecondary,
                         modifier = Modifier.weight(1f)

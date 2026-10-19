@@ -139,7 +139,7 @@ fun CheckoutScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Registrado correctamente en la base de datos local SQLite y stock descontado.",
+                        text = "La venta quedó registrada y el stock se actualizó.",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center

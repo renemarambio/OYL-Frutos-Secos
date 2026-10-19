@@ -194,7 +194,7 @@ fun SalesHistoryScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Historial de Ventas (SQLite)",
+                        text = "Historial de ventas",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
@@ -247,7 +247,7 @@ fun SalesHistoryScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Sin ventas registradas en SQLite",
+                        text = "Aún no hay ventas registradas",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
@@ -267,7 +267,7 @@ fun SalesHistoryScreen(
             ) {
                 item {
                     Text(
-                        text = "Registros guardados en persistencia local SQLite (${sales.size} ventas):",
+                        text = "${sales.size} ventas registradas",
                         style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)),
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                     )

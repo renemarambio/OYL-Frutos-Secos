@@ -36,6 +36,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -110,7 +111,7 @@ fun LoginScreen(
             )
 
             Text(
-                text = "Sistema de Gestión y Ventas DSY1105",
+                text = "Gestión de inventario y ventas",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -235,7 +236,7 @@ fun LoginScreen(
                             )
                         } else {
                             Text(
-                                text = "INGRESAR AL SISTEMA",
+                                text = "Ingresar",
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
@@ -244,20 +245,17 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Botón Demo
-                    OutlinedButton(
+                    // Acceso de demostración (útil para probar la app sin crear cuenta)
+                    TextButton(
                         onClick = {
                             focusManager.clearFocus()
                             authViewModel.loginAsDemo(onLoginSuccess)
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandSecondary)
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
                         Text(
-                            text = "Acceso Rápido (Modo Demo)",
+                            text = "Entrar como invitado",
+                            color = BrandPrimary,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -267,7 +265,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "OYL Frutos Secos © 2026\nDesarrollo de Aplicaciones Móviles",
+                text = "© 2026 OYL Frutos Secos",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                     textAlign = TextAlign.Center

@@ -1,8 +1,15 @@
 package com.example.oylfrutossecos.ui.screens
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,38 +20,40 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.ContactMail
-import androidx.compose.material.icons.filled.HelpCenter
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
 
@@ -53,12 +62,14 @@ import com.example.oylfrutossecos.ui.theme.BrandSecondary
 fun SupportScreen(
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Soporte e Información Académica",
+                        text = "Ayuda y contacto",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
@@ -66,7 +77,7 @@ fun SupportScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
                             tint = Color.White
                         )
@@ -85,86 +96,9 @@ fun SupportScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Ficha Académica DSY1105
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            modifier = Modifier.size(44.dp),
-                            shape = CircleShape,
-                            color = BrandPrimary.copy(alpha = 0.12f)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.School,
-                                    contentDescription = null,
-                                    tint = BrandPrimary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "DSY1105",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = BrandPrimary
-                                )
-                            )
-                            Text(
-                                text = "Desarrollo de Aplicaciones Móviles",
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Divider()
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    AcademicInfoRow("Proyecto Evaluado:", "OYL Frutos Secos (15 Pantallas)")
-                    AcademicInfoRow("Institución:", "Duoc UC - Escuela de Informática")
-                    AcademicInfoRow("Docente / Profesor:", "Profesor Titular Cátedra DSY1105")
-                    AcademicInfoRow("Plataforma:", "Android Studio - Jetpack Compose (M3)")
-                    AcademicInfoRow("Patrón Arquitectónico:", "MVVM (Model - View - ViewModel)")
-                    AcademicInfoRow("Gestión de Estado:", "StateFlow & Coroutines")
-                    AcademicInfoRow("Persistencia:", "SQLite / Room Local Database")
-                }
-            }
-
-            // Componentes Técnicos Implementados
-            Text(
-                text = "Detalle de Especificaciones Técnicas",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = BrandPrimary
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FeatureCheckRow("15 Pantallas completas integradas con NavHost centralizado")
-                    FeatureCheckRow("Base de datos local SQLite con precarga Mock de frutos secos")
-                    FeatureCheckRow("Manejo de carrito con cálculo de subtotales, IVA y flete")
-                    FeatureCheckRow("Módulo de escáner y generador de códigos QR / SKU")
-                    FeatureCheckRow("Integración de cámara nativa con ActivityResultContracts")
-                    FeatureCheckRow("Mapa interactivo con cálculo de tarifas de reparto por zona")
-                    FeatureCheckRow("Historial de ventas persistido con relaciones atómicas")
-                }
-            }
-
             // Preguntas Frecuentes (FAQ) OYL
             Text(
-                text = "Preguntas Frecuentes (FAQ)",
+                text = "Preguntas frecuentes",
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 color = BrandPrimary
             )
@@ -179,99 +113,151 @@ fun SupportScreen(
                 answer = "Para pedidos confirmados antes de las 13:00 hrs en Santiago Centro, Providencia y Sector Oriente, el despacho se efectúa durante la tarde del mismo día."
             )
 
-            // Canales de Ayuda
+            FaqCard(
+                question = "¿Cómo registro un producto nuevo?",
+                answer = "Desde Inicio entra a Nuevo producto. Completa nombre, precio y stock; puedes tomarle una foto y escanear su código de barras para asignarlo automáticamente."
+            )
+
+            FaqCard(
+                question = "¿Qué pasa si escaneo un código que no existe?",
+                answer = "La app te avisa que el código no está en el inventario. Puedes registrarlo como producto nuevo usando ese mismo código."
+            )
+
+            // Canales de contacto: abren las apps nativas de teléfono y correo
+            Text(
+                text = "Contáctanos",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = BrandPrimary
+            )
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = BrandSecondary.copy(alpha = 0.1f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                Row(
+                Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ContactMail,
-                        contentDescription = null,
-                        tint = BrandSecondary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text("Mesa de Ayuda Académica & Técnica", fontWeight = FontWeight.Bold, color = BrandSecondary)
-                        Text("soporte.alumnos@duocuc.cl · +56 2 2999 3000", fontSize = 12.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.ContactMail,
+                            contentDescription = null,
+                            tint = BrandSecondary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Atención OYL Frutos Secos", fontWeight = FontWeight.Bold, color = BrandSecondary)
+                            Text("Lunes a viernes, 9:00 a 18:00 hrs", fontSize = 12.sp)
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = {
+                                // ACTION_DIAL abre el marcador con el número; no requiere permiso de llamadas
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$SUPPORT_PHONE"))
+                                launchSafely(context, intent)
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                        ) {
+                            Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Llamar")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).apply {
+                                    putExtra(Intent.EXTRA_EMAIL, arrayOf(SUPPORT_EMAIL))
+                                    putExtra(Intent.EXTRA_SUBJECT, "Consulta app OYL Frutos Secos")
+                                }
+                                launchSafely(context, intent)
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(18.dp), tint = BrandPrimary)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Correo", color = BrandPrimary)
+                        }
                     }
                 }
             }
+
+            Text(
+                text = "OYL Frutos Secos · Versión 1.0",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
 
-@Composable
-fun AcademicInfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        )
-    }
-}
+private const val SUPPORT_PHONE = "+56991234567"
+private const val SUPPORT_EMAIL = "contacto@oylfrutossecos.cl"
 
-@Composable
-fun FeatureCheckRow(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = Icons.Default.VerifiedUser,
-            contentDescription = null,
-            tint = BrandSecondary,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp)
-        )
+/** Abre otra app del teléfono; si no hay ninguna que pueda manejarlo, avisa en vez de cerrarse. */
+private fun launchSafely(context: Context, intent: Intent) {
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, "No hay una aplicación disponible para esta acción", Toast.LENGTH_SHORT).show()
     }
 }
 
 @Composable
 fun FaqCard(question: String, answer: String) {
+    var expanded by remember { mutableStateOf(false) }
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "faq_arrow"
+    )
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = question,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = BrandPrimary)
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = answer,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-                    lineHeight = 18.sp
+        // animateContentSize: la tarjeta crece suavemente al mostrar la respuesta
+        Column(
+            modifier = Modifier
+                .animateContentSize()
+                .padding(14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = question,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = BrandPrimary)
                 )
-            )
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Ocultar respuesta" else "Ver respuesta",
+                    tint = BrandPrimary,
+                    modifier = Modifier.rotate(arrowRotation)
+                )
+            }
+            if (expanded) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = answer,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                        lineHeight = 18.sp
+                    )
+                )
+            }
         }
     }
 }
