@@ -20,6 +20,8 @@ data class CheckoutFormState(
     val customerAddress: String = "",
     val deliveryZone: String = "Santiago Centro & Providencia",
     val paymentMethod: String = "Tarjeta Débito/Crédito",
+    val latitude: Double = -33.42628,
+    val longitude: Double = -70.61254,
     val nameError: String? = null,
     val emailError: String? = null,
     val phoneError: String? = null,
@@ -34,6 +36,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _sales = MutableStateFlow<List<Sale>>(emptyList())
     val sales: StateFlow<List<Sale>> = _sales.asStateFlow()
+
+    private val _customerOrders = MutableStateFlow<List<Sale>>(emptyList())
+    val customerOrders: StateFlow<List<Sale>> = _customerOrders.asStateFlow()
 
     private val _selectedSale = MutableStateFlow<Sale?>(null)
     val selectedSale: StateFlow<Sale?> = _selectedSale.asStateFlow()
@@ -56,6 +61,14 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun loadCustomerOrders(email: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _customerOrders.value = repository.getSalesByCustomer(email)
+            _isLoading.value = false
+        }
+    }
+
     fun selectSale(sale: Sale?) {
         _selectedSale.value = sale
     }
@@ -66,7 +79,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         phone: String? = null,
         address: String? = null,
         deliveryZone: String? = null,
-        paymentMethod: String? = null
+        paymentMethod: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
     ) {
         _checkoutForm.update { current ->
             current.copy(
@@ -76,6 +91,8 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 customerAddress = address ?: current.customerAddress,
                 deliveryZone = deliveryZone ?: current.deliveryZone,
                 paymentMethod = paymentMethod ?: current.paymentMethod,
+                latitude = latitude ?: current.latitude,
+                longitude = longitude ?: current.longitude,
                 nameError = if (name != null) null else current.nameError,
                 emailError = if (email != null) null else current.emailError,
                 phoneError = if (phone != null) null else current.phoneError,
@@ -91,7 +108,6 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         onError: (String) -> Unit
     ) {
         val form = _checkoutForm.value
-        // Validación centralizada en domain/validation/Validators
         val nameErr = Validators.validatePersonName(form.customerName)
         val emailErr = Validators.validateEmail(form.customerEmail)
         val phoneErr = Validators.validateChileanPhone(form.customerPhone)
@@ -113,13 +129,17 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 customerAddress = form.customerAddress.trim(),
                 deliveryZone = form.deliveryZone,
                 deliveryFee = deliveryFee,
-                paymentMethod = form.paymentMethod
+                paymentMethod = form.paymentMethod,
+                latitude = form.latitude,
+                longitude = form.longitude
             )
 
             result.onSuccess { sale ->
-                // Se limpia el formulario para la siguiente venta
                 _checkoutForm.update { CheckoutFormState(lastCompletedSale = sale) }
                 loadSales()
+                if (sale.customerEmail.isNotBlank()) {
+                    loadCustomerOrders(sale.customerEmail)
+                }
                 onSuccess(sale)
             }.onFailure { error ->
                 _checkoutForm.update { it.copy(isProcessing = false) }

@@ -21,16 +21,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddShoppingCart
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,14 +62,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.oylfrutossecos.ui.components.CartIconButton
-import com.example.oylfrutossecos.ui.components.ProductImage
 import androidx.compose.ui.unit.sp
 import com.example.oylfrutossecos.data.model.Product
+import com.example.oylfrutossecos.data.model.UserRole
+import com.example.oylfrutossecos.ui.components.CartIconButton
+import com.example.oylfrutossecos.ui.components.ProductImage
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusWarning
+import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 import kotlinx.coroutines.launch
@@ -75,11 +79,16 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCatalogScreen(
+    authViewModel: AuthViewModel,
     productViewModel: ProductViewModel,
     cartViewModel: CartViewModel,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToAddProduct: () -> Unit,
     onNavigateToCart: () -> Unit,
+    onNavigateToMyOrders: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
+    onNavigateToScanner: () -> Unit = {},
+    onLogout: (() -> Unit)? = null,
     onNavigateBack: () -> Unit
 ) {
     val products by productViewModel.products.collectAsState()
@@ -87,6 +96,8 @@ fun ProductCatalogScreen(
     val selectedCategory by productViewModel.selectedCategory.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
     val cartCount by cartViewModel.totalItemsCount.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val isAdmin = currentUser?.role == UserRole.ADMIN
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -99,7 +110,7 @@ fun ProductCatalogScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Catálogo de Productos",
+                        text = "Catálogo de Frutos Secos",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
@@ -107,26 +118,62 @@ fun ProductCatalogScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
                             tint = Color.White
                         )
                     }
                 },
                 actions = {
-                    CartIconButton(cartCount = cartCount, onClick = onNavigateToCart)
+                    IconButton(onClick = onNavigateToScanner) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = "Escanear QR",
+                            tint = Color.White
+                        )
+                    }
+                    // Solo el CLIENTE tiene acceso al carrito y a sus pedidos personales
+                    if (!isAdmin) {
+                        IconButton(onClick = onNavigateToMyOrders) {
+                            Icon(
+                                imageVector = Icons.Default.ReceiptLong,
+                                contentDescription = "Mis Pedidos",
+                                tint = Color.White
+                            )
+                        }
+                        CartIconButton(cartCount = cartCount, onClick = onNavigateToCart)
+                        IconButton(onClick = onNavigateToProfile) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Perfil",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                    if (onLogout != null) {
+                        IconButton(onClick = onLogout) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = "Cerrar sesión",
+                                tint = Color.White
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = BrandPrimary)
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToAddProduct,
-                containerColor = BrandPrimary,
-                contentColor = Color.White,
-                shape = CircleShape
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Registrar Producto")
+            // Solo el ADMIN puede agregar nuevos productos
+            if (isAdmin) {
+                FloatingActionButton(
+                    onClick = onNavigateToAddProduct,
+                    containerColor = BrandPrimary,
+                    contentColor = Color.White,
+                    shape = CircleShape
+                ) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Registrar Producto")
+                }
             }
         }
     ) { innerPadding ->
@@ -237,8 +284,7 @@ fun ProductCatalogScreen(
                     items(products, key = { it.id }) { product ->
                         ProductItemCard(
                             product = product,
-                            // Anima la aparición/reordenamiento al filtrar o buscar
-                            modifier = Modifier.animateItem(),
+                            isAdmin = isAdmin,
                             onCardClick = { onNavigateToDetail(product.id) },
                             onAddToCart = {
                                 cartViewModel.addToCart(product, 1)
@@ -257,6 +303,7 @@ fun ProductCatalogScreen(
 @Composable
 fun ProductItemCard(
     product: Product,
+    isAdmin: Boolean,
     modifier: Modifier = Modifier,
     onCardClick: () -> Unit,
     onAddToCart: () -> Unit
@@ -276,7 +323,6 @@ fun ProductItemCard(
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono / Preview
             Surface(
                 modifier = Modifier.size(60.dp),
                 shape = RoundedCornerShape(12.dp),
@@ -290,19 +336,13 @@ fun ProductItemCard(
                 ProductImage(
                     imagePath = product.imageUrl,
                     contentDescription = product.name,
-                    placeholderTint = when (product.category) {
-                        "Frutos Secos" -> BrandPrimary
-                        "Semillas" -> BrandSecondary
-                        "Deshidratados" -> Color(0xFFD84315)
-                        else -> BrandPrimary
-                    },
+                    placeholderTint = BrandPrimary,
                     modifier = Modifier.fillMaxSize()
                 )
             }
 
             Spacer(modifier = Modifier.width(14.dp))
 
-            // Datos del producto
             Column(modifier = Modifier.weight(1f)) {
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -368,23 +408,33 @@ fun ProductItemCard(
 
             Spacer(modifier = Modifier.width(10.dp))
 
-            // Botón rápido de agregar al carrito
-            Surface(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .clickable { onAddToCart() },
-                shape = CircleShape,
-                color = BrandPrimary
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.AddShoppingCart,
-                        contentDescription = "Añadir",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+            // Si es CLIENTE, ve botón rápido para añadir al carrito
+            // Si es ADMIN, ve flecha para ir a la ficha de administración
+            if (!isAdmin) {
+                Surface(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .clickable { onAddToCart() },
+                    shape = CircleShape,
+                    color = BrandPrimary
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.AddShoppingCart,
+                            contentDescription = "Añadir",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
+            } else {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Ver ficha",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }

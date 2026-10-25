@@ -1,6 +1,7 @@
 package com.example.oylfrutossecos.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -32,7 +35,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -51,21 +54,26 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.oylfrutossecos.data.model.UserRole
 import com.example.oylfrutossecos.ui.components.FieldErrorIcon
 import com.example.oylfrutossecos.ui.components.FieldSupportText
-import androidx.compose.ui.unit.sp
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
+import com.example.oylfrutossecos.ui.theme.StatusError
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     authViewModel: AuthViewModel,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: (UserRole) -> Unit,
+    onNavigateToRegister: () -> Unit = {},
+    onNavigateToForgotPassword: () -> Unit = {}
 ) {
     val uiState by authViewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -80,7 +88,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Logo circular
             Surface(
@@ -99,7 +107,7 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Text(
                 text = "OYL FRUTOS SECOS",
@@ -111,13 +119,13 @@ fun LoginScreen(
             )
 
             Text(
-                text = "Gestión de inventario y ventas",
+                text = "Ingreso al Sistema de Ventas y Compras",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Tarjeta de Formulario
             Card(
@@ -129,7 +137,7 @@ fun LoginScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp)
+                        .padding(22.dp)
                 ) {
                     Text(
                         text = "Iniciar Sesión",
@@ -139,13 +147,13 @@ fun LoginScreen(
                         )
                     )
                     Text(
-                        text = "Ingresa con tus credenciales de operador",
+                        text = "Ingresa con tu perfil de Administrador o Cliente",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Campo Correo
                     OutlinedTextField(
@@ -153,7 +161,7 @@ fun LoginScreen(
                         onValueChange = { authViewModel.onEmailChanged(it) },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("Correo electrónico") },
-                        placeholder = { Text("usuario@oylfrutossecos.cl") },
+                        placeholder = { Text("admin@oyl.cl o cliente@oyl.cl") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Email,
@@ -207,19 +215,54 @@ fun LoginScreen(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 focusManager.clearFocus()
-                                authViewModel.login(onLoginSuccess)
+                                authViewModel.login(context, onLoginSuccess)
                             }
                         ),
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    // Enlace Recuperar Contraseña
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = onNavigateToForgotPassword,
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            Text(
+                                text = "¿Olvidaste tu contraseña?",
+                                color = BrandPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    // Error general
+                    if (uiState.generalError != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            color = StatusError.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = uiState.generalError!!,
+                                color = StatusError,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     // Botón de Inicio de Sesión
                     Button(
                         onClick = {
                             focusManager.clearFocus()
-                            authViewModel.login(onLoginSuccess)
+                            authViewModel.login(context, onLoginSuccess)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -243,26 +286,81 @@ fun LoginScreen(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Accesos rápidos Demo precargados para facilitar la revisión
+                    Text(
+                        text = "Accesos rápidos de prueba:",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = Color.Gray),
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    focusManager.clearFocus()
+                                    authViewModel.loginAsDemoAdmin(context, onLoginSuccess)
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            color = BrandPrimary.copy(alpha = 0.12f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Admin", fontWeight = FontWeight.Bold, color = BrandPrimary, fontSize = 12.sp)
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    focusManager.clearFocus()
+                                    authViewModel.loginAsDemoClient(context, onLoginSuccess)
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            color = BrandSecondary.copy(alpha = 0.12f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = BrandSecondary, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Cliente", fontWeight = FontWeight.Bold, color = BrandSecondary, fontSize = 12.sp)
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Acceso de demostración (útil para probar la app sin crear cuenta)
-                    TextButton(
-                        onClick = {
-                            focusManager.clearFocus()
-                            authViewModel.loginAsDemo(onLoginSuccess)
-                        },
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    // Enlace a Registro
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Entrar como invitado",
-                            color = BrandPrimary,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text("¿No tienes cuenta?", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                        TextButton(onClick = onNavigateToRegister) {
+                            Text("Regístrate aquí", color = BrandPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Text(
                 text = "© 2026 OYL Frutos Secos",

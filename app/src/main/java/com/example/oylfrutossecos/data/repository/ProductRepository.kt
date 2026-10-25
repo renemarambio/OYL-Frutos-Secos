@@ -61,6 +61,14 @@ class ProductRepository(context: Context) {
         }
     }
 
+    suspend fun updateStock(id: Long, newStock: Int): Boolean = withContext(Dispatchers.IO) {
+        dbHelper.updateProductStock(id, newStock) > 0
+    }
+
+    suspend fun updatePrice(id: Long, newPrice: Double): Boolean = withContext(Dispatchers.IO) {
+        dbHelper.updateProductPrice(id, newPrice) > 0
+    }
+
     suspend fun resetDefaults() = withContext(Dispatchers.IO) {
         dbHelper.resetDatabaseToDefaults()
     }

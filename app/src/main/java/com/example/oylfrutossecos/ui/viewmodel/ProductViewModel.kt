@@ -251,4 +251,38 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
             onResult(product)
         }
     }
+
+    fun adjustStock(productId: Long, delta: Int, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val prod = repository.getProductById(productId) ?: return@launch
+            val newStock = (prod.stock + delta).coerceAtLeast(0)
+            val success = repository.updateStock(productId, newStock)
+            if (success) {
+                loadData()
+            }
+            onResult(success)
+        }
+    }
+
+    fun updateStockDirect(productId: Long, newStock: Int, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val validStock = newStock.coerceAtLeast(0)
+            val success = repository.updateStock(productId, validStock)
+            if (success) {
+                loadData()
+            }
+            onResult(success)
+        }
+    }
+
+    fun updatePriceDirect(productId: Long, newPrice: Double, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            if (newPrice <= 0) return@launch
+            val success = repository.updatePrice(productId, newPrice)
+            if (success) {
+                loadData()
+            }
+            onResult(success)
+        }
+    }
 }

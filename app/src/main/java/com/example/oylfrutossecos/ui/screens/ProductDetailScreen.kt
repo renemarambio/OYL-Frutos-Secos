@@ -23,11 +23,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddShoppingCart
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Remove
@@ -42,6 +43,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -64,12 +66,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.oylfrutossecos.ui.components.ProductImage
 import androidx.compose.ui.unit.sp
+import com.example.oylfrutossecos.data.model.UserRole
+import com.example.oylfrutossecos.ui.components.CartIconButton
+import com.example.oylfrutossecos.ui.components.ProductImage
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusWarning
+import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 import kotlinx.coroutines.launch
@@ -78,13 +83,18 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProductDetailScreen(
     productId: Long,
+    authViewModel: AuthViewModel,
     productViewModel: ProductViewModel,
     cartViewModel: CartViewModel,
     onNavigateToEdit: (Long) -> Unit,
+    onNavigateToCart: () -> Unit = {},
     onNavigateBack: () -> Unit
 ) {
     val selectedProduct by productViewModel.selectedProduct.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val isAdmin = currentUser?.role == UserRole.ADMIN
+
     var quantity by remember { mutableIntStateOf(1) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -107,21 +117,26 @@ fun ProductDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
                             tint = Color.White
                         )
                     }
                 },
                 actions = {
-                    selectedProduct?.let { prod ->
-                        IconButton(onClick = { onNavigateToEdit(prod.id) }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Editar",
-                                tint = Color.White
-                            )
+                    if (isAdmin) {
+                        selectedProduct?.let { prod ->
+                            IconButton(onClick = { onNavigateToEdit(prod.id) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Editar",
+                                    tint = Color.White
+                                )
+                            }
                         }
+                    } else {
+                        val cartCount by cartViewModel.totalItemsCount.collectAsState()
+                        CartIconButton(cartCount = cartCount, onClick = onNavigateToCart)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = BrandPrimary)
@@ -284,7 +299,7 @@ fun ProductDetailScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "SKU: ${product.barcode.takeLast(6)}",
+                                    text = "SKU: ${product.barcode.takeLast(8)}",
                                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
                                 )
                             }
@@ -309,7 +324,7 @@ fun ProductDetailScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Insumos e Ingredientes (Obligatorio)
+                    // Insumos e Ingredientes
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
@@ -353,92 +368,140 @@ fun ProductDetailScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Selector de Cantidad y Añadir al Carrito
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Cantidad a Comprar:",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                                )
+                    // VISTA CONDICIONAL: CLIENTE (Comprar) vs ADMIN (Gestión de Stock y Producto)
+                    if (!isAdmin) {
+                        // CLIENTE: Selector de cantidad y agregar al carrito
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Cantidad a Comprar:",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                                    )
 
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    OutlinedIconButton(
-                                        onClick = { if (quantity > 1) quantity-- },
-                                        enabled = quantity > 1,
-                                        shape = CircleShape
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Remove, contentDescription = "Menos")
-                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        OutlinedIconButton(
+                                            onClick = { if (quantity > 1) quantity-- },
+                                            enabled = quantity > 1,
+                                            shape = CircleShape
+                                        ) {
+                                            Icon(imageVector = Icons.Default.Remove, contentDescription = "Menos")
+                                        }
 
-                                    // El número se desliza hacia arriba o abajo según se sume o reste
-                                    AnimatedContent(
-                                        targetState = quantity,
-                                        transitionSpec = {
-                                            if (targetState > initialState) {
-                                                (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut())
-                                            } else {
-                                                (slideInVertically { -it } + fadeIn()) togetherWith (slideOutVertically { it } + fadeOut())
-                                            }
-                                        },
-                                        label = "quantity"
-                                    ) { qty ->
-                                        Text(
-                                            text = "$qty ${product.unit}",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                            modifier = Modifier.padding(horizontal = 14.dp)
-                                        )
-                                    }
+                                        AnimatedContent(
+                                            targetState = quantity,
+                                            transitionSpec = {
+                                                if (targetState > initialState) {
+                                                    (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut())
+                                                } else {
+                                                    (slideInVertically { -it } + fadeIn()) togetherWith (slideOutVertically { it } + fadeOut())
+                                                }
+                                            },
+                                            label = "quantity"
+                                        ) { qty ->
+                                            Text(
+                                                text = "$qty ${product.unit}",
+                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                modifier = Modifier.padding(horizontal = 14.dp)
+                                            )
+                                        }
 
-                                    OutlinedIconButton(
-                                        onClick = { if (quantity < product.stock) quantity++ },
-                                        enabled = quantity < product.stock,
-                                        shape = CircleShape
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Add, contentDescription = "Más")
+                                        OutlinedIconButton(
+                                            onClick = { if (quantity < product.stock) quantity++ },
+                                            enabled = quantity < product.stock,
+                                            shape = CircleShape
+                                        ) {
+                                            Icon(imageVector = Icons.Default.Add, contentDescription = "Más")
+                                        }
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                val subtotalForQty = product.price * quantity
+                                val formattedSubtotal = "$${String.format("%,d", subtotalForQty.toLong()).replace(',', '.')}"
+
+                                Button(
+                                    onClick = {
+                                        cartViewModel.addToCart(product, quantity)
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("¡$quantity ${product.unit} de ${product.name} agregados al carrito!")
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(52.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
+                                    enabled = product.stock > 0
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AddShoppingCart,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Añadir al Carrito ($formattedSubtotal)",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
                             }
+                        }
+                    } else {
+                        // ADMIN: Panel Informativo y Opciones de Administración (NUNCA COMPRA)
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = BrandPrimary.copy(alpha = 0.08f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Inventory2,
+                                        contentDescription = null,
+                                        tint = BrandPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Gestión de Inventario (Perfil Administrador)",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = BrandPrimary
+                                    )
+                                }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                            val subtotalForQty = product.price * quantity
-                            val formattedSubtotal = "$${String.format("%,d", subtotalForQty.toLong()).replace(',', '.')}"
-
-                            Button(
-                                onClick = {
-                                    cartViewModel.addToCart(product, quantity)
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("¡$quantity ${product.unit} de ${product.name} agregados al carrito!")
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
-                                enabled = product.stock > 0
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AddShoppingCart,
-                                    contentDescription = null,
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Añadir al Carrito ($formattedSubtotal)",
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    text = "Como administrador del sistema, puedes editar los atributos, cambiar el precio o ajustar las existencias en bodega.",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                                 )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Button(
+                                    onClick = { onNavigateToEdit(product.id) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Edit, contentDescription = null, tint = Color.White)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Editar Producto en Catálogo", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }

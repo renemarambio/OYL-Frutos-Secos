@@ -48,4 +48,31 @@ class ValidatorsTest {
         assertNull(Validators.validateBarcode("780998810001"))
         assertNotNull(Validators.validateBarcode("@@"))
     }
+
+    @Test
+    fun security_answer_hashing_and_case_insensitivity() {
+        val hash = Validators.hashSecurityAnswer("Almendra")
+        assertNotNull(hash)
+        // Comparación insensible a mayúsculas y espacios
+        org.junit.Assert.assertTrue(Validators.verifySecurityAnswer("almendra", hash))
+        org.junit.Assert.assertTrue(Validators.verifySecurityAnswer("  ALMENDRA  ", hash))
+        org.junit.Assert.assertTrue(Validators.verifySecurityAnswer("AlmEndRa", hash))
+        org.junit.Assert.assertFalse(Validators.verifySecurityAnswer("Nuez", hash))
+    }
+
+    @Test
+    fun masking_helpers() {
+        org.junit.Assert.assertEquals("cl****@oyl.cl", Validators.maskEmail("cliente@oyl.cl"))
+        org.junit.Assert.assertEquals("+56 9 ****4321", Validators.maskPhone("+56 9 8765 4321"))
+    }
+
+    @Test
+    fun security_answer_and_password_not_same_validation() {
+        assertNull(Validators.validateSecurityAnswer("Pelusa"))
+        assertNotNull(Validators.validateSecurityAnswer(""))
+        assertNotNull(Validators.validateSecurityAnswer("A"))
+
+        assertNotNull(Validators.validateNewPasswordNotSame("Admin123!", "Admin123!"))
+        assertNull(Validators.validateNewPasswordNotSame("NuevaPassword123!", "Admin123!"))
+    }
 }

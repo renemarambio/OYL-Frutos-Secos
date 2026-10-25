@@ -55,6 +55,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     // ZXing Android Embedded para lectura funcional de códigos QR y códigos de barra
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    // OpenStreetMap (osmdroid) para mapa interactivo de despachos y pedidos
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

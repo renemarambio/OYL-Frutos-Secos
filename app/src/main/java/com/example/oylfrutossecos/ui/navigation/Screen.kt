@@ -2,7 +2,10 @@ package com.example.oylfrutossecos.ui.navigation
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
+    object Welcome : Screen("welcome")
     object Login : Screen("login")
+    object ForgotPassword : Screen("forgot_password")
+    object Register : Screen("register")
     object Home : Screen("home")
     object CategoryList : Screen("category_list")
     object ProductCatalog : Screen("product_catalog?category={category}") {
@@ -23,6 +26,9 @@ sealed class Screen(val route: String) {
     object Checkout : Screen("checkout")
     object DeliveryMap : Screen("delivery_map")
     object SalesHistory : Screen("sales_history")
+    object Inventory : Screen("inventory")
+    object MyOrders : Screen("my_orders")
+    object Profile : Screen("profile")
     object Settings : Screen("settings")
     object Support : Screen("support")
 }

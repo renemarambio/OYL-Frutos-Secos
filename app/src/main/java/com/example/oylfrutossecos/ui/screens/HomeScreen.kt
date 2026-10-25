@@ -15,27 +15,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.AddBusiness
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,14 +53,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.oylfrutossecos.ui.components.CartIconButton
 import androidx.compose.ui.unit.sp
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusWarning
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
-import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 import com.example.oylfrutossecos.ui.viewmodel.SalesViewModel
 
@@ -83,37 +76,44 @@ data class QuickActionItem(
 fun HomeScreen(
     authViewModel: AuthViewModel,
     productViewModel: ProductViewModel,
-    cartViewModel: CartViewModel,
     salesViewModel: SalesViewModel,
     onNavigateToCatalog: () -> Unit,
     onNavigateToCategories: () -> Unit,
     onNavigateToAddProduct: () -> Unit,
-    onNavigateToCamera: () -> Unit,
+    onNavigateToInventory: () -> Unit,
     onNavigateToScanner: () -> Unit,
-    onNavigateToCart: () -> Unit,
     onNavigateToDeliveryMap: () -> Unit,
     onNavigateToSalesHistory: () -> Unit,
+    onNavigateToProfile: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToSupport: () -> Unit
+    onNavigateToSupport: () -> Unit,
+    onLogout: (() -> Unit)? = null
 ) {
     val user by authViewModel.currentUser.collectAsState()
     val products by productViewModel.products.collectAsState()
-    val cartCount by cartViewModel.totalItemsCount.collectAsState()
     val sales by salesViewModel.sales.collectAsState()
 
     val lowStockCount = products.count { it.isLowStock }
     val totalStockUnits = products.sumOf { it.stock }
 
     val quickActions = listOf(
+        QuickActionItem(
+            "Inventario",
+            if (lowStockCount > 0) "$lowStockCount bajo stock" else "Control de stock y precios",
+            Icons.Default.Inventory2,
+            if (lowStockCount > 0) "$lowStockCount!" else null,
+            if (lowStockCount > 0) StatusWarning else BrandPrimary,
+            onNavigateToInventory
+        ),
         QuickActionItem("Catálogo", "${products.size} productos", Icons.Default.ShoppingBag, null, BrandPrimary, onNavigateToCatalog),
         QuickActionItem("Categorías", "4 grupos activos", Icons.Default.Category, null, BrandSecondary, onNavigateToCategories),
-        QuickActionItem("Nuevo Producto", "Registro de stock", Icons.Default.AddBusiness, null, BrandPrimary, onNavigateToAddProduct),
-        QuickActionItem("Mi Carrito", "$cartCount ítems listos", Icons.Default.ShoppingCart, if (cartCount > 0) cartCount.toString() else null, BrandAccent, onNavigateToCart),
-        QuickActionItem("Escanear código", "Buscar por QR o barra", Icons.Default.QrCodeScanner, null, BrandPrimary, onNavigateToScanner),
-        QuickActionItem("Mapa Reparto", "Zonas de despacho", Icons.Default.LocalShipping, null, BrandSecondary, onNavigateToDeliveryMap),
+        QuickActionItem("Nuevo Producto", "Registro en bodega", Icons.Default.AddBusiness, null, BrandPrimary, onNavigateToAddProduct),
+        QuickActionItem("Escanear código", "QR o código de barra", Icons.Default.QrCodeScanner, null, BrandPrimary, onNavigateToScanner),
+        QuickActionItem("Mapa Reparto", "Pedidos en el mapa", Icons.Default.LocalShipping, null, BrandSecondary, onNavigateToDeliveryMap),
         QuickActionItem("Historial Ventas", "${sales.size} órdenes en BD", Icons.Default.History, null, BrandPrimary, onNavigateToSalesHistory),
-        QuickActionItem("Ajustes", "Cuenta y datos", Icons.Default.Settings, null, Color.Gray, onNavigateToSettings),
-        QuickActionItem("Ayuda", "Preguntas y contacto", Icons.Default.HelpOutline, null, BrandPrimary, onNavigateToSupport)
+        QuickActionItem("Mi Perfil", "Administrador OYL", Icons.Default.Person, null, BrandSecondary, onNavigateToProfile),
+        QuickActionItem("Ajustes", "Configuración y datos", Icons.Default.Settings, null, Color.Gray, onNavigateToSettings),
+        QuickActionItem("Ayuda", "Soporte técnico", Icons.AutoMirrored.Filled.HelpOutline, null, BrandPrimary, onNavigateToSupport)
     )
 
     Scaffold(
@@ -143,7 +143,7 @@ fun HomeScreen(
                                 color = Color.White
                             )
                             Text(
-                                text = "Panel Principal",
+                                text = "Panel de Administración",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.8f)
                             )
@@ -151,13 +151,28 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    CartIconButton(cartCount = cartCount, onClick = onNavigateToCart)
+                    IconButton(onClick = onNavigateToProfile) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Mi Perfil",
+                            tint = Color.White
+                        )
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Ajustes",
                             tint = Color.White
                         )
+                    }
+                    if (onLogout != null) {
+                        IconButton(onClick = onLogout) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = "Cerrar sesión",
+                                tint = Color.White
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = BrandPrimary)
@@ -172,7 +187,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Saludo personalizado al usuario logueado
+            // Saludo personalizado al Administrador
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -189,14 +204,14 @@ fun HomeScreen(
                         Surface(
                             modifier = Modifier.size(48.dp),
                             shape = CircleShape,
-                            color = BrandSecondary.copy(alpha = 0.15f)
+                            color = BrandPrimary.copy(alpha = 0.15f)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = user?.name?.take(1) ?: "U",
+                                    text = (user?.name?.take(1) ?: "A").uppercase(),
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Bold,
-                                        color = BrandSecondary
+                                        color = BrandPrimary
                                     )
                                 )
                             }
@@ -206,11 +221,11 @@ fun HomeScreen(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "¡Hola, ${user?.name ?: "Invitado"}! 👋",
+                                text = "¡Hola, ${user?.name ?: "Administrador"}! 👨‍💼",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = "${user?.role ?: "Operador"} · ${user?.email ?: ""}",
+                                text = "Perfil: Administrador · ${user?.email ?: ""}",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
@@ -220,7 +235,7 @@ fun HomeScreen(
                 }
             }
 
-            // Banner promocional OYL
+            // Banner informativo del Rol Administrador
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -243,7 +258,7 @@ fun HomeScreen(
                                 color = BrandAccent
                             ) {
                                 Text(
-                                    text = "TEMPORADA 2026",
+                                    text = "PANEL ADMINISTRADOR",
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
@@ -255,7 +270,7 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
-                                text = "Frutos Secos y Semillas Seleccionadas",
+                                text = "Control Operativo de Inventario y Ventas",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -265,7 +280,7 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = "Nueces mariposa, almendras tostadas y chía orgánica con entrega el mismo día en Santiago.",
+                                text = "El administrador supervisa stock, gestiona precios y despacha los pedidos realizados por los clientes.",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = Color.White.copy(alpha = 0.9f)
                                 )
@@ -278,7 +293,7 @@ fun HomeScreen(
             // Resumen de Métricas (Tarjetas)
             item {
                 Text(
-                    text = "Resumen Operativo del Sistema",
+                    text = "Resumen del Sistema",
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
@@ -292,7 +307,7 @@ fun HomeScreen(
                     MetricCard(
                         title = "Productos",
                         value = products.size.toString(),
-                        subtitle = "$totalStockUnits kg en stock",
+                        subtitle = "$totalStockUnits kg en bodega",
                         icon = Icons.Default.Inventory2,
                         tint = BrandPrimary,
                         modifier = Modifier.weight(1f)
@@ -301,16 +316,16 @@ fun HomeScreen(
                     MetricCard(
                         title = "Bajo Stock",
                         value = lowStockCount.toString(),
-                        subtitle = if (lowStockCount > 0) "¡Requiere reorden!" else "Niveles óptimos",
+                        subtitle = if (lowStockCount > 0) "¡Requiere reorden!" else "Óptimo",
                         icon = Icons.Default.NotificationsActive,
                         tint = if (lowStockCount > 0) StatusWarning else BrandSecondary,
                         modifier = Modifier.weight(1f)
                     )
 
                     MetricCard(
-                        title = "Ventas BD",
+                        title = "Ventas",
                         value = sales.size.toString(),
-                        subtitle = "Ventas totales",
+                        subtitle = "Órdenes registradas",
                         icon = Icons.Default.History,
                         tint = BrandSecondary,
                         modifier = Modifier.weight(1f)
@@ -321,7 +336,7 @@ fun HomeScreen(
             // Accesos Directos (Grid de botones)
             item {
                 Text(
-                    text = "Módulos de la Aplicación",
+                    text = "Módulos de Administración",
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
@@ -416,7 +431,7 @@ fun MetricCard(
     title: String,
     value: String,
     subtitle: String,
-    icon: ImageVector,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     tint: Color,
     modifier: Modifier = Modifier
 ) {
@@ -430,30 +445,35 @@ fun MetricCard(
             modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = tint,
-                modifier = Modifier.size(22.dp)
-            )
+            Surface(
+                modifier = Modifier.size(34.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = tint.copy(alpha = 0.12f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = tint,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = tint
-                )
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                color = tint
             )
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                ),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 maxLines = 1
             )
         }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
@@ -25,8 +26,11 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalAtm
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +42,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
@@ -46,9 +51,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,38 +66,70 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.unit.sp
+import com.example.oylfrutossecos.data.model.Sale
 import com.example.oylfrutossecos.ui.components.FieldErrorIcon
 import com.example.oylfrutossecos.ui.components.FieldSupportText
-import com.example.oylfrutossecos.data.model.Sale
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
+import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
 import com.example.oylfrutossecos.ui.viewmodel.SalesViewModel
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckoutScreen(
     cartViewModel: CartViewModel,
     salesViewModel: SalesViewModel,
-    onNavigateToSalesHistory: () -> Unit,
+    authViewModel: AuthViewModel,
+    onNavigateToMap: () -> Unit,
+    onNavigateToMyOrders: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
+    val currentUser by authViewModel.currentUser.collectAsState()
     val cartItems by cartViewModel.cartItems.collectAsState()
     val subtotal by cartViewModel.subtotal.collectAsState()
     val deliveryFee by cartViewModel.deliveryFee.collectAsState()
     val total by cartViewModel.total.collectAsState()
     val selectedZone by cartViewModel.selectedDeliveryZone.collectAsState()
 
+    val selectedLat by cartViewModel.selectedLat.collectAsState()
+    val selectedLng by cartViewModel.selectedLng.collectAsState()
+    val selectedAddressDesc by cartViewModel.selectedAddressDescription.collectAsState()
+    val distanceKm by cartViewModel.distanceKm.collectAsState()
+
     val formState by salesViewModel.checkoutForm.collectAsState()
     var successSale by remember { mutableStateOf<Sale?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    // Precargar datos del usuario cliente activo si los campos están vacíos
+    LaunchedEffect(currentUser) {
+        currentUser?.let { user ->
+            salesViewModel.onCheckoutFieldChanged(
+                name = if (formState.customerName.isBlank()) user.name else null,
+                email = if (formState.customerEmail.isBlank()) user.email else null,
+                phone = if (formState.customerPhone.isBlank()) user.phone else null,
+                address = if (formState.customerAddress.isBlank()) (user.address ?: selectedAddressDesc) else null
+            )
+        }
+    }
+
+    // Sincronizar coordenadas y dirección seleccionadas en el mapa con el formulario
+    LaunchedEffect(selectedLat, selectedLng, selectedAddressDesc) {
+        salesViewModel.onCheckoutFieldChanged(
+            latitude = selectedLat,
+            longitude = selectedLng,
+            deliveryZone = selectedZone.name,
+            address = if (formState.customerAddress.isBlank() && selectedAddressDesc.isNotBlank()) selectedAddressDesc else null
+        )
+    }
 
     val paymentMethods = listOf(
         Pair("Tarjeta Débito/Crédito", Icons.Default.CreditCard),
@@ -98,7 +137,7 @@ fun CheckoutScreen(
         Pair("Efectivo Contra Entrega", Icons.Default.LocalAtm)
     )
 
-    // Diálogo de confirmación de venta exitosa
+    // Diálogo de confirmación de pedido exitoso
     if (successSale != null) {
         AlertDialog(
             onDismissRequest = {},
@@ -120,7 +159,7 @@ fun CheckoutScreen(
             },
             title = {
                 Text(
-                    text = "¡Venta Confirmada con Éxito!",
+                    text = "¡Pedido Confirmado con Éxito!",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.Center
                 )
@@ -134,12 +173,17 @@ fun CheckoutScreen(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Total Pagado: ${successSale!!.formattedTotal}",
+                        text = "Total: ${successSale!!.formattedTotal}",
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "La venta quedó registrada y el stock se actualizó.",
+                        text = "Despacho a: ${successSale!!.customerAddress}",
+                        style = MaterialTheme.typography.bodySmall.copy(textAlign = TextAlign.Center)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "El pedido quedó registrado en SQLite y el stock se descontó de los productos.",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center
@@ -150,12 +194,26 @@ fun CheckoutScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        val email = successSale?.customerEmail ?: ""
                         successSale = null
-                        onNavigateToSalesHistory()
+                        if (email.isNotBlank()) {
+                            salesViewModel.loadCustomerOrders(email)
+                        }
+                        onNavigateToMyOrders()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
                 ) {
-                    Text("Ver Historial de Ventas")
+                    Text("Ver Mis Pedidos")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        successSale = null
+                        onNavigateBack()
+                    }
+                ) {
+                    Text("Volver al Catálogo")
                 }
             }
         )
@@ -167,7 +225,7 @@ fun CheckoutScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Confirmación de Compra",
+                        text = "Confirmación de Pedido",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
@@ -194,7 +252,72 @@ fun CheckoutScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Datos del Cliente
+            // Ubicación de Despacho en OpenStreetMap
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = null,
+                            tint = BrandPrimary
+                        )
+                        Text(
+                            text = "Punto de Entrega en Mapa (OpenStreetMap)",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Ubicación: $selectedAddressDesc",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = String.format(Locale.US, "Coordenadas: %.5f, %.5f (a %.1f km de la tienda)", selectedLat, selectedLng, distanceKm),
+                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f))
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Tarifa de Despacho calculada: ${selectedZone.formattedFee}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = BrandSecondary
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = onNavigateToMap,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Map,
+                            contentDescription = null,
+                            tint = BrandPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ver / Cambiar Ubicación en el Mapa", color = BrandPrimary, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Datos del Cliente y Despacho
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -203,7 +326,7 @@ fun CheckoutScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Datos de Despacho y Facturación",
+                        text = "Datos de Contacto y Dirección",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
 
@@ -257,7 +380,7 @@ fun CheckoutScreen(
                     OutlinedTextField(
                         value = formState.customerAddress,
                         onValueChange = { salesViewModel.onCheckoutFieldChanged(address = it) },
-                        label = { Text("Dirección de Entrega (Comuna / Calle / Depto)") },
+                        label = { Text("Dirección Exacta (Calle, Número, Depto)") },
                         leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, tint = BrandPrimary) },
                         modifier = Modifier.fillMaxWidth(),
                         isError = formState.addressError != null,
@@ -323,7 +446,7 @@ fun CheckoutScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Resumen de la Venta",
+                        text = "Resumen del Pedido",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
 
@@ -357,6 +480,17 @@ fun CheckoutScreen(
                     ) {
                         Text("Subtotal", style = MaterialTheme.typography.bodyMedium)
                         Text(cartViewModel.formatPrice(subtotal), fontWeight = FontWeight.SemiBold)
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    val ivaAmount = subtotal * 0.19
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("IVA (19%)", style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray))
+                        Text(cartViewModel.formatPrice(ivaAmount), style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray))
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))
@@ -395,13 +529,19 @@ fun CheckoutScreen(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Botón Confirmar Venta
+            // Botón Confirmar Pedido
             Button(
                 onClick = {
+                    salesViewModel.onCheckoutFieldChanged(
+                        latitude = selectedLat,
+                        longitude = selectedLng,
+                        deliveryZone = selectedZone.name
+                    )
                     salesViewModel.confirmOrder(
                         cartItems = cartItems,
                         deliveryFee = deliveryFee,
                         onSuccess = { sale ->
+                            cartViewModel.clearCart()
                             successSale = sale
                         },
                         onError = { errMsg ->
@@ -432,7 +572,7 @@ fun CheckoutScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "CONFIRMAR PEDIDO Y REGISTRAR EN SQLITE",
+                        text = "CONFIRMAR PEDIDO",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )

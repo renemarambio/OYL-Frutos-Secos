@@ -20,6 +20,10 @@ class SalesRepository(context: Context) {
         dbHelper.getAllSales()
     }
 
+    suspend fun getSalesByCustomer(email: String): List<Sale> = withContext(Dispatchers.IO) {
+        dbHelper.getSalesByCustomerEmail(email)
+    }
+
     suspend fun createSale(
         cartItems: List<CartItem>,
         customerName: String,
@@ -27,7 +31,9 @@ class SalesRepository(context: Context) {
         customerAddress: String,
         deliveryZone: String,
         deliveryFee: Double,
-        paymentMethod: String
+        paymentMethod: String,
+        latitude: Double = -33.42628,
+        longitude: Double = -70.61254
     ): Result<Sale> = withContext(Dispatchers.IO) {
         try {
             if (cartItems.isEmpty()) {
@@ -54,7 +60,9 @@ class SalesRepository(context: Context) {
                 subtotal = subtotal,
                 deliveryFee = deliveryFee,
                 total = total,
-                status = "Confirmado"
+                status = "Confirmado",
+                latitude = latitude,
+                longitude = longitude
             )
 
             val saleItems = cartItems.map { item ->

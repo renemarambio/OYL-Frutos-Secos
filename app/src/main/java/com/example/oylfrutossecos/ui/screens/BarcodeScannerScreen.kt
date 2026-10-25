@@ -96,6 +96,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import com.example.oylfrutossecos.data.model.UserRole
+import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
+
 /**
  * Pantalla y Componente Composable Modular para la lectura funcional de Códigos QR
  * usando ZXing (zxing-android-embedded) integrado con SQLite (AppDatabaseHelper)
@@ -105,10 +108,17 @@ import kotlinx.coroutines.withContext
 @Composable
 fun BarcodeScannerScreen(
     productViewModel: ProductViewModel,
+    authViewModel: AuthViewModel? = null,
     pickMode: Boolean = false,
     onNavigateToProductDetail: (Long) -> Unit,
+    onNavigateToEditProduct: ((Long) -> Unit)? = null,
     onNavigateBack: () -> Unit
 ) {
+    val currentUser by (authViewModel?.currentUser ?: remember { mutableStateOf(null) }).let {
+        if (authViewModel != null) authViewModel.currentUser.collectAsState() else remember { mutableStateOf(null) }
+    }
+    val isAdmin = currentUser?.role == UserRole.ADMIN
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -467,13 +477,41 @@ fun BarcodeScannerScreen(
 
                                 Spacer(modifier = Modifier.height(14.dp))
 
-                                Button(
-                                    onClick = { onNavigateToProductDetail(prod.id) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
-                                ) {
-                                    Text("Ver Detalle Completo del Producto", fontWeight = FontWeight.Bold)
+                                if (isAdmin) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Button(
+                                            onClick = { onNavigateToProductDetail(prod.id) },
+                                            modifier = Modifier.weight(1f),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                                        ) {
+                                            Text("Ver Detalle", fontWeight = FontWeight.Bold)
+                                        }
+                                        if (onNavigateToEditProduct != null) {
+                                            Button(
+                                                onClick = { onNavigateToEditProduct(prod.id) },
+                                                modifier = Modifier.weight(1f),
+                                                shape = RoundedCornerShape(10.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = BrandSecondary)
+                                            ) {
+                                                Text("Editar Producto", fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Button(
+                                        onClick = { onNavigateToProductDetail(prod.id) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Spa, contentDescription = null, tint = Color.White)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Ver Detalle y Comprar", fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }

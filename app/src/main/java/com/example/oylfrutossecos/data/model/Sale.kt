@@ -14,7 +14,9 @@ data class Sale(
     val subtotal: Double,
     val deliveryFee: Double,
     val total: Double,
-    val status: String = "Completado"
+    val status: String = "Completado",
+    val latitude: Double = -33.42628,
+    val longitude: Double = -70.61254
 ) {
     val formattedTotal: String
         get() = "$${String.format("%,d", total.toLong()).replace(',', '.')}"

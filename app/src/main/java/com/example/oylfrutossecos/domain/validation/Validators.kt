@@ -6,9 +6,6 @@ package com.example.oylfrutossecos.domain.validation
  * Cada función recibe el valor ingresado y devuelve:
  *  - null  -> el valor es válido
  *  - String -> mensaje de error para mostrar bajo el campo
- *
- * No depende de Android ni de Compose, por lo que la usan todos los ViewModels
- * y se puede probar con tests unitarios (ver ValidatorsTest).
  */
 object Validators {
 
@@ -19,7 +16,8 @@ object Validators {
 
     private val BARCODE_REGEX = Regex("^[A-Za-z0-9-]{4,20}$")
 
-    const val MIN_PASSWORD_LENGTH = 6
+    const val MIN_LOGIN_PASSWORD_LENGTH = 6
+    const val MIN_REGISTER_PASSWORD_LENGTH = 8
     const val MIN_NAME_LENGTH = 3
     const val MIN_ADDRESS_LENGTH = 8
     const val MAX_PRICE = 1_000_000.0
@@ -36,7 +34,19 @@ object Validators {
 
     fun validatePassword(password: String): String? = when {
         password.isBlank() -> "La contraseña es obligatoria"
-        password.length < MIN_PASSWORD_LENGTH -> "Debe tener al menos $MIN_PASSWORD_LENGTH caracteres"
+        password.length < MIN_LOGIN_PASSWORD_LENGTH -> "Debe tener al menos $MIN_LOGIN_PASSWORD_LENGTH caracteres"
+        else -> null
+    }
+
+    fun validateRegistrationPassword(password: String): String? = when {
+        password.isBlank() -> "La contraseña es obligatoria"
+        password.length < MIN_REGISTER_PASSWORD_LENGTH -> "La contraseña debe tener al menos $MIN_REGISTER_PASSWORD_LENGTH caracteres"
+        else -> null
+    }
+
+    fun validateConfirmPassword(password: String, confirm: String): String? = when {
+        confirm.isBlank() -> "Confirma tu contraseña"
+        password != confirm -> "Las contraseñas no coinciden"
         else -> null
     }
 
@@ -100,10 +110,65 @@ object Validators {
         }
     }
 
+    val SECURITY_QUESTIONS = listOf(
+        "¿Nombre de tu primera mascota?",
+        "¿Ciudad donde naciste?",
+        "¿Nombre de tu colegio de infancia?",
+        "¿Cuál es tu fruto seco favorito?"
+    )
+
+    fun hashSecurityAnswer(answer: String): String {
+        val normalized = answer.trim().lowercase()
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        val bytes = md.digest(normalized.toByteArray(Charsets.UTF_8))
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    fun verifySecurityAnswer(input: String, expectedHash: String): Boolean {
+        if (expectedHash.isBlank()) return false
+        return hashSecurityAnswer(input) == expectedHash.lowercase()
+    }
+
+    fun maskEmail(email: String): String {
+        val clean = email.trim()
+        val atIndex = clean.indexOf('@')
+        if (atIndex <= 0) return clean
+        val username = clean.substring(0, atIndex)
+        val domain = clean.substring(atIndex)
+        return when {
+            username.length <= 2 -> "${username.first()}****$domain"
+            else -> "${username.take(2)}****$domain"
+        }
+    }
+
+    fun maskPhone(phone: String): String {
+        val clean = phone.trim()
+        val digits = clean.filter { it.isDigit() }
+        val last4 = if (digits.length >= 4) digits.takeLast(4) else digits
+        return "+56 9 ****$last4"
+    }
+
+    fun validateSecurityAnswer(answer: String): String? {
+        val value = answer.trim()
+        return when {
+            value.isBlank() -> "La respuesta de seguridad es obligatoria"
+            value.length < 2 -> "La respuesta debe tener al menos 2 caracteres"
+            else -> null
+        }
+    }
+
+    fun validateNewPasswordNotSame(newPassword: String, oldPassword: String): String? {
+        return if (oldPassword.isNotBlank() && newPassword == oldPassword) {
+            "La nueva contraseña no puede ser igual a la anterior"
+        } else {
+            null
+        }
+    }
+
     fun validateAddress(address: String): String? {
         val value = address.trim()
         return when {
-            value.isBlank() -> "La dirección de entrega es obligatoria"
+            value.isBlank() -> "La dirección es obligatoria"
             value.length < MIN_ADDRESS_LENGTH -> "Escribe calle, número y comuna"
             !value.any { it.isDigit() } -> "Incluye el número de la dirección"
             else -> null
