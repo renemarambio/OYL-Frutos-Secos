@@ -254,11 +254,21 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     fun adjustStock(productId: Long, delta: Int, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
-            val prod = repository.getProductById(productId) ?: return@launch
-            val newStock = (prod.stock + delta).coerceAtLeast(0)
+            val currentList = _products.value
+            val target = currentList.find { it.id == productId } ?: return@launch
+            val newStock = (target.stock + delta).coerceAtLeast(0)
+            if (newStock == target.stock) return@launch
+
+            // Actualiza en el StateFlow modificando únicamente el producto ajustado
+            _products.update { list ->
+                list.map { if (it.id == productId) it.copy(stock = newStock) else it }
+            }
+
             val success = repository.updateStock(productId, newStock)
-            if (success) {
-                loadData()
+            if (!success) {
+                _products.update { list ->
+                    list.map { if (it.id == productId) it.copy(stock = target.stock) else it }
+                }
             }
             onResult(success)
         }
@@ -267,9 +277,22 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     fun updateStockDirect(productId: Long, newStock: Int, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             val validStock = newStock.coerceAtLeast(0)
+            val currentList = _products.value
+            val target = currentList.find { it.id == productId } ?: return@launch
+            if (validStock == target.stock) {
+                onResult(true)
+                return@launch
+            }
+
+            _products.update { list ->
+                list.map { if (it.id == productId) it.copy(stock = validStock) else it }
+            }
+
             val success = repository.updateStock(productId, validStock)
-            if (success) {
-                loadData()
+            if (!success) {
+                _products.update { list ->
+                    list.map { if (it.id == productId) it.copy(stock = target.stock) else it }
+                }
             }
             onResult(success)
         }
@@ -278,9 +301,22 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     fun updatePriceDirect(productId: Long, newPrice: Double, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             if (newPrice <= 0) return@launch
+            val currentList = _products.value
+            val target = currentList.find { it.id == productId } ?: return@launch
+            if (newPrice == target.price) {
+                onResult(true)
+                return@launch
+            }
+
+            _products.update { list ->
+                list.map { if (it.id == productId) it.copy(price = newPrice) else it }
+            }
+
             val success = repository.updatePrice(productId, newPrice)
-            if (success) {
-                loadData()
+            if (!success) {
+                _products.update { list ->
+                    list.map { if (it.id == productId) it.copy(price = target.price) else it }
+                }
             }
             onResult(success)
         }

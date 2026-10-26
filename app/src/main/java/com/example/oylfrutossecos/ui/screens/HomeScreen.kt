@@ -25,12 +25,16 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -77,12 +82,15 @@ fun HomeScreen(
     authViewModel: AuthViewModel,
     productViewModel: ProductViewModel,
     salesViewModel: SalesViewModel,
+    notificationViewModel: NotificationViewModel,
     onNavigateToCatalog: () -> Unit,
     onNavigateToCategories: () -> Unit,
     onNavigateToAddProduct: () -> Unit,
     onNavigateToInventory: () -> Unit,
     onNavigateToScanner: () -> Unit,
     onNavigateToDeliveryMap: () -> Unit,
+    onNavigateToLocalesMap: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
     onNavigateToSalesHistory: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -92,6 +100,8 @@ fun HomeScreen(
     val user by authViewModel.currentUser.collectAsState()
     val products by productViewModel.products.collectAsState()
     val sales by salesViewModel.sales.collectAsState()
+    val allNotifications by notificationViewModel.notifications.collectAsState()
+    val unreadNotificationsCount = notificationViewModel.getUnreadCount(isAdmin = true)
 
     val lowStockCount = products.count { it.isLowStock }
     val totalStockUnits = products.sumOf { it.stock }
@@ -110,6 +120,7 @@ fun HomeScreen(
         QuickActionItem("Nuevo Producto", "Registro en bodega", Icons.Default.AddBusiness, null, BrandPrimary, onNavigateToAddProduct),
         QuickActionItem("Escanear código", "QR o código de barra", Icons.Default.QrCodeScanner, null, BrandPrimary, onNavigateToScanner),
         QuickActionItem("Mapa Reparto", "Pedidos en el mapa", Icons.Default.LocalShipping, null, BrandSecondary, onNavigateToDeliveryMap),
+        QuickActionItem("Nuestros Locales", "5 sucursales Santiago", Icons.Default.Storefront, null, BrandPrimary, onNavigateToLocalesMap),
         QuickActionItem("Historial Ventas", "${sales.size} órdenes en BD", Icons.Default.History, null, BrandPrimary, onNavigateToSalesHistory),
         QuickActionItem("Mi Perfil", "Administrador OYL", Icons.Default.Person, null, BrandSecondary, onNavigateToProfile),
         QuickActionItem("Ajustes", "Configuración y datos", Icons.Default.Settings, null, Color.Gray, onNavigateToSettings),
@@ -151,6 +162,30 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToNotifications) {
+                        BadgedBox(
+                            badge = {
+                                if (unreadNotificationsCount > 0) {
+                                    Badge(
+                                        containerColor = BrandAccent,
+                                        contentColor = Color.Black
+                                    ) {
+                                        Text(
+                                            text = if (unreadNotificationsCount > 9) "9+" else "$unreadNotificationsCount",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notificaciones",
+                                tint = Color.White
+                            )
+                        }
+                    }
                     IconButton(onClick = onNavigateToProfile) {
                         Icon(
                             imageVector = Icons.Default.Person,

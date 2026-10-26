@@ -27,12 +27,16 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -73,6 +77,7 @@ import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusWarning
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
+import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 import kotlinx.coroutines.launch
 
@@ -82,12 +87,15 @@ fun ProductCatalogScreen(
     authViewModel: AuthViewModel,
     productViewModel: ProductViewModel,
     cartViewModel: CartViewModel,
+    notificationViewModel: NotificationViewModel,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToAddProduct: () -> Unit,
     onNavigateToCart: () -> Unit,
     onNavigateToMyOrders: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onNavigateToScanner: () -> Unit = {},
+    onNavigateToLocalesMap: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
     onLogout: (() -> Unit)? = null,
     onNavigateBack: () -> Unit
 ) {
@@ -98,6 +106,8 @@ fun ProductCatalogScreen(
     val cartCount by cartViewModel.totalItemsCount.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
     val isAdmin = currentUser?.role == UserRole.ADMIN
+    val allNotifications by notificationViewModel.notifications.collectAsState()
+    val unreadNotificationsCount = notificationViewModel.getUnreadCount(isAdmin = isAdmin)
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -125,6 +135,37 @@ fun ProductCatalogScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToLocalesMap) {
+                        Icon(
+                            imageVector = Icons.Default.Storefront,
+                            contentDescription = "Nuestros Locales",
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(onClick = onNavigateToNotifications) {
+                        BadgedBox(
+                            badge = {
+                                if (unreadNotificationsCount > 0) {
+                                    Badge(
+                                        containerColor = BrandAccent,
+                                        contentColor = Color.Black
+                                    ) {
+                                        Text(
+                                            text = if (unreadNotificationsCount > 9) "9+" else "$unreadNotificationsCount",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notificaciones",
+                                tint = Color.White
+                            )
+                        }
+                    }
                     IconButton(onClick = onNavigateToScanner) {
                         Icon(
                             imageVector = Icons.Default.QrCodeScanner,

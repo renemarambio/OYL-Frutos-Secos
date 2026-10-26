@@ -1,6 +1,8 @@
 package com.example.oylfrutossecos.ui.screens
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,11 +19,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -54,6 +60,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.oylfrutossecos.data.local.MockDataProvider
+import com.example.oylfrutossecos.data.model.Local
 import com.example.oylfrutossecos.data.model.UserRole
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
@@ -113,6 +121,7 @@ fun DeliveryMapScreen(
     val coroutineScope = rememberCoroutineScope()
 
     var selectedOrderInfo by remember { mutableStateOf<String?>(null) }
+    var selectedLocalInfo by remember { mutableStateOf<Local?>(null) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -167,14 +176,22 @@ fun DeliveryMapScreen(
                         controller.setZoom(13.0)
                         controller.setCenter(storeGeoPoint)
 
-                        // 1. Marcador Casa Matriz OYL
-                        val storeMarker = Marker(this).apply {
-                            position = storeGeoPoint
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            title = "Casa Matriz OYL Frutos Secos"
-                            snippet = "Providencia #1820 · Punto de despacho"
+                        // 1. Marcadores de todos los Locales OYL (Casa Matriz y Sucursales)
+                        MockDataProvider.locales.forEach { local ->
+                            val localMarker = Marker(this).apply {
+                                position = GeoPoint(local.latitud, local.longitud)
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                title = local.nombre
+                                snippet = "${local.direccion}, ${local.comuna}"
+                                icon = createLocalMarkerBitmap(ctx, isSelected = false, isCasaMatriz = local.esCasaMatriz)
+                                setOnMarkerClickListener { marker, _ ->
+                                    marker.showInfoWindow()
+                                    selectedLocalInfo = local
+                                    true
+                                }
+                            }
+                            overlays.add(localMarker)
                         }
-                        overlays.add(storeMarker)
 
                         if (!isAdmin) {
                             // 2. Modo CLIENTE: Marcador dinámico de destino y selector con toque
@@ -189,6 +206,7 @@ fun DeliveryMapScreen(
                             // Overlay para detectar toque en el mapa
                             val eventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
                                 override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+                                    selectedLocalInfo = null
                                     clientMarker.position = p
                                     cartViewModel.setDeliveryLocationFromMap(p.latitude, p.longitude)
                                     invalidate()
@@ -271,8 +289,125 @@ fun DeliveryMapScreen(
                 }
             }
 
-            // Panel Inferior: Modo CLIENTE (Confirmar Ubicación y Costo) o ADMIN (Detalle de Pedido)
-            if (!isAdmin) {
+            // Panel Inferior: Modo LOCAL SELECCIONADO, Modo CLIENTE (Confirmar Ubicación y Costo) o ADMIN (Detalle de Pedido)
+            if (selectedLocalInfo != null) {
+                val local = selectedLocalInfo!!
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp)
+                        .align(Alignment.BottomCenter),
+                    shape = RoundedCornerShape(18.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = local.nombre,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = BrandPrimary
+                                    )
+                                )
+                                Text(
+                                    text = "${local.comuna} · Sucursal OYL",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+                                )
+                            }
+                            IconButton(onClick = { selectedLocalInfo = null }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Cerrar", tint = Color.Gray)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "${local.direccion}, ${local.comuna}",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Schedule, contentDescription = null, tint = BrandSecondary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = local.horario,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Call, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = local.telefono,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = BrandPrimary,
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    val uri = Uri.parse("geo:${local.latitud},${local.longitud}?q=${Uri.encode("${local.nombre}, ${local.direccion}, ${local.comuna}")}")
+                                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                                    try {
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        val webIntent = Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}")
+                                        )
+                                        context.startActivity(webIntent)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).height(44.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                            ) {
+                                Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Cómo llegar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            if (!isAdmin) {
+                                Button(
+                                    onClick = {
+                                        selectedLocalInfo = null
+                                        cartViewModel.setDeliveryLocationFromMap(local.latitud, local.longitud, "Cercano a ${local.nombre}")
+                                    },
+                                    modifier = Modifier.weight(1f).height(44.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = BrandSecondary)
+                                ) {
+                                    Text("Fijar Entrega Aquí", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (!isAdmin) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()

@@ -25,8 +25,10 @@ import com.example.oylfrutossecos.ui.screens.DeliveryMapScreen
 import com.example.oylfrutossecos.ui.screens.ForgotPasswordScreen
 import com.example.oylfrutossecos.ui.screens.HomeScreen
 import com.example.oylfrutossecos.ui.screens.InventoryScreen
+import com.example.oylfrutossecos.ui.screens.LocalesMapScreen
 import com.example.oylfrutossecos.ui.screens.LoginScreen
 import com.example.oylfrutossecos.ui.screens.MyOrdersScreen
+import com.example.oylfrutossecos.ui.screens.NotificationsScreen
 import com.example.oylfrutossecos.ui.screens.ProductCatalogScreen
 import com.example.oylfrutossecos.ui.screens.ProductDetailScreen
 import com.example.oylfrutossecos.ui.screens.ProfileScreen
@@ -39,6 +41,7 @@ import com.example.oylfrutossecos.ui.screens.WelcomeScreen
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ForgotPasswordViewModel
+import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 import com.example.oylfrutossecos.ui.viewmodel.SalesViewModel
 
@@ -50,7 +53,8 @@ fun AppNavGraph(
     authViewModel: AuthViewModel = viewModel(),
     productViewModel: ProductViewModel = viewModel(),
     cartViewModel: CartViewModel = viewModel(),
-    salesViewModel: SalesViewModel = viewModel()
+    salesViewModel: SalesViewModel = viewModel(),
+    notificationViewModel: NotificationViewModel = viewModel()
 ) {
     NavHost(
         navController = navController,
@@ -167,12 +171,15 @@ fun AppNavGraph(
                 authViewModel = authViewModel,
                 productViewModel = productViewModel,
                 salesViewModel = salesViewModel,
+                notificationViewModel = notificationViewModel,
                 onNavigateToCatalog = { navController.navigate(Screen.ProductCatalog.createRoute("Todos")) },
                 onNavigateToCategories = { navController.navigate(Screen.CategoryList.route) },
                 onNavigateToAddProduct = { navController.navigate(Screen.AddEditProduct.createRoute(0L)) },
                 onNavigateToInventory = { navController.navigate(Screen.Inventory.route) },
                 onNavigateToScanner = { navController.navigate(Screen.BarcodeScanner.createRoute()) },
                 onNavigateToDeliveryMap = { navController.navigate(Screen.DeliveryMap.route) },
+                onNavigateToLocalesMap = { navController.navigate(Screen.LocalesMap.route) },
+                onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                 onNavigateToSalesHistory = { navController.navigate(Screen.SalesHistory.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
@@ -215,6 +222,7 @@ fun AppNavGraph(
                 authViewModel = authViewModel,
                 productViewModel = productViewModel,
                 cartViewModel = cartViewModel,
+                notificationViewModel = notificationViewModel,
                 onNavigateToDetail = { productId ->
                     navController.navigate(Screen.ProductDetail.createRoute(productId))
                 },
@@ -223,6 +231,8 @@ fun AppNavGraph(
                 onNavigateToMyOrders = { navController.navigate(Screen.MyOrders.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToScanner = { navController.navigate(Screen.BarcodeScanner.createRoute()) },
+                onNavigateToLocalesMap = { navController.navigate(Screen.LocalesMap.route) },
+                onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                 onLogout = {
                     authViewModel.logout()
                     navController.navigate(Screen.Welcome.route) {
@@ -452,6 +462,22 @@ fun AppNavGraph(
         // 20. Support Screen
         composable(Screen.Support.route) {
             SupportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // 21. Nuestros Locales Screen (OpenStreetMap interactivo con sucursales Santiago)
+        composable(Screen.LocalesMap.route) {
+            LocalesMapScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // 22. Notifications Screen (Simulación con contador y leído/no leído)
+        composable(Screen.Notifications.route) {
+            NotificationsScreen(
+                authViewModel = authViewModel,
+                notificationViewModel = notificationViewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

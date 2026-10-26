@@ -2,6 +2,7 @@ package com.example.oylfrutossecos.data.local
 
 import com.example.oylfrutossecos.data.model.Category
 import com.example.oylfrutossecos.data.model.DeliveryZone
+import com.example.oylfrutossecos.data.model.Local
 import com.example.oylfrutossecos.data.model.Product
 
 object MockDataProvider {
@@ -268,6 +269,60 @@ object MockDataProvider {
             estimatedTime = "Inmediato (Lunes a Viernes 09:00 a 19:00 hrs)",
             description = "Retiro gratuito sin costo en Av. Providencia #1820, Oficina 402.",
             status = "Gratuito"
+        )
+    )
+
+    val locales = listOf(
+        Local(
+            id = "local_matriz",
+            nombre = "Casa Matriz Providencia",
+            direccion = "Av. Providencia #1820",
+            comuna = "Providencia",
+            horario = "Lunes a Viernes 09:00 - 19:30 | Sábado 10:00 - 14:00",
+            telefono = "+56 9 8765 4321",
+            latitud = -33.42628,
+            longitud = -70.61254,
+            esCasaMatriz = true
+        ),
+        Local(
+            id = "local_las_condes",
+            nombre = "Sucursal Las Condes",
+            direccion = "Av. Las Condes #9230",
+            comuna = "Las Condes",
+            horario = "Lunes a Sábado 10:00 - 20:30 | Domingo 11:00 - 18:00",
+            telefono = "+56 9 7654 3210",
+            latitud = -33.3854,
+            longitud = -70.5362
+        ),
+        Local(
+            id = "local_stgo_centro",
+            nombre = "Sucursal Santiago Centro",
+            direccion = "Paseo Ahumada #341",
+            comuna = "Santiago Centro",
+            horario = "Lunes a Viernes 08:30 - 19:30 | Sábado 10:00 - 15:00",
+            telefono = "+56 9 6543 2109",
+            latitud = -33.4398,
+            longitud = -70.6515
+        ),
+        Local(
+            id = "local_nunoa",
+            nombre = "Sucursal Plaza Ñuñoa",
+            direccion = "Av. Irarrázaval #2401",
+            comuna = "Ñuñoa",
+            horario = "Lunes a Sábado 09:30 - 20:00",
+            telefono = "+56 9 5432 1098",
+            latitud = -33.4542,
+            longitud = -70.6035
+        ),
+        Local(
+            id = "local_maipu",
+            nombre = "Sucursal Maipú Centro",
+            direccion = "Av. Pajaritos #2150",
+            comuna = "Maipú",
+            horario = "Lunes a Sábado 09:00 - 19:30",
+            telefono = "+56 9 4321 0987",
+            latitud = -33.5108,
+            longitud = -70.7573
         )
     )
 }

@@ -31,4 +31,6 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object Settings : Screen("settings")
     object Support : Screen("support")
+    object LocalesMap : Screen("locales_map")
+    object Notifications : Screen("notifications")
 }
