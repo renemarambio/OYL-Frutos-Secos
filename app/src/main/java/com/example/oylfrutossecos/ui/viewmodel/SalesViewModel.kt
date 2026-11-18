@@ -3,6 +3,7 @@ package com.example.oylfrutossecos.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.oylfrutossecos.data.ServiceLocator
 import com.example.oylfrutossecos.data.model.CartItem
 import com.example.oylfrutossecos.data.model.Sale
 import com.example.oylfrutossecos.data.repository.SalesRepository
@@ -30,9 +31,10 @@ data class CheckoutFormState(
     val lastCompletedSale: Sale? = null
 )
 
-class SalesViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository = SalesRepository(application)
+class SalesViewModel(
+    application: Application,
+    private val repository: SalesRepository = ServiceLocator.provideSalesRepository(application)
+) : AndroidViewModel(application) {
 
     private val _sales = MutableStateFlow<List<Sale>>(emptyList())
     val sales: StateFlow<List<Sale>> = _sales.asStateFlow()
@@ -46,6 +48,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     private val _checkoutForm = MutableStateFlow(CheckoutFormState())
     val checkoutForm: StateFlow<CheckoutFormState> = _checkoutForm.asStateFlow()
 
@@ -56,7 +61,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     fun loadSales() {
         viewModelScope.launch {
             _isLoading.value = true
+            _errorMessage.value = null
             _sales.value = repository.getAllSales()
+            _errorMessage.value = repository.lastError
             _isLoading.value = false
         }
     }
@@ -64,13 +71,19 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     fun loadCustomerOrders(email: String) {
         viewModelScope.launch {
             _isLoading.value = true
+            _errorMessage.value = null
             _customerOrders.value = repository.getSalesByCustomer(email)
+            _errorMessage.value = repository.lastError
             _isLoading.value = false
         }
     }
 
     fun selectSale(sale: Sale?) {
         _selectedSale.value = sale
+    }
+
+    fun clearErrorMessage() {
+        _errorMessage.value = null
     }
 
     fun onCheckoutFieldChanged(
@@ -143,7 +156,54 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 onSuccess(sale)
             }.onFailure { error ->
                 _checkoutForm.update { it.copy(isProcessing = false) }
-                onError(error.message ?: "Ocurrió un error al procesar la venta")
+                val msg = error.message ?: "Ocurrió un error al procesar el pedido"
+                _errorMessage.value = msg
+                onError(msg)
+            }
+        }
+    }
+
+    fun updateOrderStatus(
+        orderId: Long,
+        newStatus: String,
+        onResult: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        viewModelScope.launch {
+            val result = repository.updateStatus(orderId, newStatus)
+            result.onSuccess { updatedSale ->
+                _sales.update { list ->
+                    list.map { if (it.id == orderId) updatedSale else it }
+                }
+                _customerOrders.update { list ->
+                    list.map { if (it.id == orderId) updatedSale else it }
+                }
+                if (_selectedSale.value?.id == orderId) {
+                    _selectedSale.value = updatedSale
+                }
+                onResult(true, null)
+            }.onFailure { error ->
+                val msg = error.message ?: "Error al cambiar estado"
+                onResult(false, msg)
+            }
+        }
+    }
+
+    fun deleteOrder(
+        orderId: Long,
+        onResult: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        viewModelScope.launch {
+            val result = repository.deleteSale(orderId)
+            result.onSuccess {
+                _sales.update { list -> list.filterNot { it.id == orderId } }
+                _customerOrders.update { list -> list.filterNot { it.id == orderId } }
+                if (_selectedSale.value?.id == orderId) {
+                    _selectedSale.value = null
+                }
+                onResult(true, null)
+            }.onFailure { error ->
+                val msg = error.message ?: "Error al eliminar pedido"
+                onResult(false, msg)
             }
         }
     }

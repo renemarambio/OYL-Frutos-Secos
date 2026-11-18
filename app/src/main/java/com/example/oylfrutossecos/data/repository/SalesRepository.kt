@@ -1,27 +1,77 @@
 package com.example.oylfrutossecos.data.repository
 
 import android.content.Context
-import com.example.oylfrutossecos.data.local.AppDatabaseHelper
 import com.example.oylfrutossecos.data.model.CartItem
 import com.example.oylfrutossecos.data.model.Sale
-import com.example.oylfrutossecos.data.model.SaleItem
+import com.example.oylfrutossecos.data.remote.ApiErrorParser
+import com.example.oylfrutossecos.data.remote.RetrofitClient
+import com.example.oylfrutossecos.data.remote.api.OrderApiService
+import com.example.oylfrutossecos.data.remote.dto.OrderItemRequestDto
+import com.example.oylfrutossecos.data.remote.dto.OrderRequestDto
+import com.example.oylfrutossecos.data.remote.dto.StatusRequestDto
+import com.example.oylfrutossecos.data.remote.mapper.mapReadableStatusToBackend
+import com.example.oylfrutossecos.data.remote.mapper.toDomain
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlin.random.Random
 
-class SalesRepository(context: Context) {
+/**
+ * Repositorio de Ventas y Pedidos conectado directamente a ms-pedidos.
+ * Admite inyección por constructor para pruebas unitarias con MockK.
+ */
+class SalesRepository(
+    val api: OrderApiService = RetrofitClient.orderApiService
+) {
 
-    private val dbHelper = AppDatabaseHelper.getInstance(context)
+    /** Constructor secundario para compatibilidad */
+    constructor(context: Context) : this(RetrofitClient.orderApiService)
+
+    var lastError: String? = null
+        private set
 
     suspend fun getAllSales(): List<Sale> = withContext(Dispatchers.IO) {
-        dbHelper.getAllSales()
+        try {
+            val response = api.getOrders()
+            if (response.isSuccessful && response.body() != null) {
+                lastError = null
+                response.body()!!.map { it.toDomain() }
+            } else {
+                lastError = ApiErrorParser.parse(response)
+                emptyList()
+            }
+        } catch (e: Exception) {
+            lastError = e.message ?: "Sin conexión con el servicio de pedidos"
+            emptyList()
+        }
     }
 
     suspend fun getSalesByCustomer(email: String): List<Sale> = withContext(Dispatchers.IO) {
-        dbHelper.getSalesByCustomerEmail(email)
+        if (email.isBlank()) return@withContext emptyList()
+        try {
+            val response = api.getOrders(customerEmail = email.trim().lowercase())
+            if (response.isSuccessful && response.body() != null) {
+                lastError = null
+                response.body()!!.map { it.toDomain() }
+            } else {
+                lastError = ApiErrorParser.parse(response)
+                emptyList()
+            }
+        } catch (e: Exception) {
+            lastError = e.message ?: "Sin conexión con el servicio de pedidos"
+            emptyList()
+        }
+    }
+
+    suspend fun getSaleById(id: Long): Sale? = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getOrderById(id)
+            if (response.isSuccessful && response.body() != null) {
+                response.body()!!.toDomain()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     suspend fun createSale(
@@ -40,50 +90,66 @@ class SalesRepository(context: Context) {
                 return@withContext Result.failure(IllegalStateException("El carrito de compras está vacío"))
             }
 
-            val timestamp = System.currentTimeMillis()
-            val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-            val dateFormatted = dateFormat.format(Date(timestamp))
-            val orderNumber = "ORD-2026-${Random.nextInt(1000, 9999)}"
+            val itemsDto = cartItems.map { item ->
+                OrderItemRequestDto(
+                    productId = item.product.id,
+                    quantity = item.quantity
+                )
+            }
 
-            val subtotal = cartItems.sumOf { it.subtotal }
-            val total = subtotal + deliveryFee
-
-            val sale = Sale(
-                orderNumber = orderNumber,
-                timestamp = timestamp,
-                dateFormatted = dateFormatted,
+            val requestDto = OrderRequestDto(
                 customerName = customerName,
                 customerEmail = customerEmail,
                 customerAddress = customerAddress,
                 deliveryZone = deliveryZone,
-                paymentMethod = paymentMethod,
-                subtotal = subtotal,
                 deliveryFee = deliveryFee,
-                total = total,
-                status = "Confirmado",
+                paymentMethod = paymentMethod,
                 latitude = latitude,
-                longitude = longitude
+                longitude = longitude,
+                items = itemsDto
             )
 
-            val saleItems = cartItems.map { item ->
-                SaleItem(
-                    productId = item.product.id,
-                    productName = item.product.name,
-                    unitPrice = item.product.price,
-                    quantity = item.quantity,
-                    subtotal = item.subtotal
-                )
+            val response = api.createOrder(requestDto)
+            if (response.isSuccessful && response.body() != null) {
+                val completedSale = response.body()!!.toDomain()
+                // Vaciar carrito tras compra exitosa
+                CartRepository.getInstance().clearCart()
+                Result.success(completedSale)
+            } else {
+                val errorMsg = ApiErrorParser.parse(response)
+                Result.failure(Exception(errorMsg))
             }
-
-            val saleId = dbHelper.insertSaleWithItems(sale, saleItems)
-            val completedSale = sale.copy(id = saleId, items = saleItems)
-
-            // Vaciar carrito
-            CartRepository.getInstance().clearCart()
-
-            Result.success(completedSale)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(e.message ?: "Sin conexión con el servicio de pedidos. Intenta nuevamente."))
+        }
+    }
+
+    suspend fun updateStatus(id: Long, readableStatus: String): Result<Sale> = withContext(Dispatchers.IO) {
+        try {
+            val backendStatus = mapReadableStatusToBackend(readableStatus)
+            val response = api.updateOrderStatus(id, StatusRequestDto(status = backendStatus))
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.toDomain())
+            } else {
+                val errorMsg = ApiErrorParser.parse(response)
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Sin conexión con el servicio de pedidos"))
+        }
+    }
+
+    suspend fun deleteSale(id: Long): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.deleteOrder(id)
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                val errorMsg = ApiErrorParser.parse(response)
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Sin conexión con el servicio de pedidos"))
         }
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -74,6 +75,7 @@ fun MyOrdersScreen(
     val currentUser by authViewModel.currentUser.collectAsState()
     val orders by salesViewModel.customerOrders.collectAsState()
     val isLoading by salesViewModel.isLoading.collectAsState()
+    val errorMessage by salesViewModel.errorMessage.collectAsState()
     var selectedOrder by remember { mutableStateOf<Sale?>(null) }
 
     LaunchedEffect(currentUser?.email) {
@@ -251,19 +253,32 @@ fun MyOrdersScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Los pedidos de frutos secos que realices aparecerán aquí con su estado y resumen de entrega.",
+                        text = errorMessage ?: "Los pedidos de frutos secos que realices aparecerán aquí con su estado y resumen de entrega.",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                            color = if (errorMessage != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    if (errorMessage != null) {
+                        Button(
+                            onClick = { currentUser?.email?.let { salesViewModel.loadCustomerOrders(it) } },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                        ) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Reintentar", fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
                     Button(
                         onClick = onNavigateToCatalog,
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                        colors = if (errorMessage != null) ButtonDefaults.outlinedButtonColors() else ButtonDefaults.buttonColors(containerColor = BrandPrimary)
                     ) {
                         Icon(imageVector = Icons.Default.ShoppingBag, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
