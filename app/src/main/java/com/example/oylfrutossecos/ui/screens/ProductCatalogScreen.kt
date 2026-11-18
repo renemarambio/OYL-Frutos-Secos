@@ -81,6 +81,9 @@ import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
 import androidx.compose.material.icons.filled.CloudOff
 import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.oylfrutossecos.ui.components.DolarCard
+import com.example.oylfrutossecos.ui.viewmodel.IndicatorViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,6 +93,7 @@ fun ProductCatalogScreen(
     productViewModel: ProductViewModel,
     cartViewModel: CartViewModel,
     notificationViewModel: NotificationViewModel,
+    indicatorViewModel: IndicatorViewModel = viewModel(),
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToAddProduct: () -> Unit,
     onNavigateToCart: () -> Unit,
@@ -274,6 +278,19 @@ fun ProductCatalogScreen(
                         }
                     }
                 }
+            }
+
+            // Tarjeta Dólar hoy (mindicador.cl)
+            val indicatorState by indicatorViewModel.uiState.collectAsState()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                DolarCard(
+                    uiState = indicatorState,
+                    onRetry = { indicatorViewModel.loadDolar() }
+                )
             }
 
             // Buscador en tiempo real

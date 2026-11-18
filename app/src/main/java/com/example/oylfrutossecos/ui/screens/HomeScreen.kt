@@ -65,6 +65,9 @@ import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusWarning
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.oylfrutossecos.ui.components.DolarCard
+import com.example.oylfrutossecos.ui.viewmodel.IndicatorViewModel
 import com.example.oylfrutossecos.ui.viewmodel.SalesViewModel
 
 data class QuickActionItem(
@@ -83,6 +86,7 @@ fun HomeScreen(
     productViewModel: ProductViewModel,
     salesViewModel: SalesViewModel,
     notificationViewModel: NotificationViewModel,
+    indicatorViewModel: IndicatorViewModel = viewModel(),
     onNavigateToCatalog: () -> Unit,
     onNavigateToCategories: () -> Unit,
     onNavigateToAddProduct: () -> Unit,
@@ -323,6 +327,15 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+
+            // Tarjeta de Dólar Hoy (API externa mindicador.cl)
+            item {
+                val indicatorState by indicatorViewModel.uiState.collectAsState()
+                DolarCard(
+                    uiState = indicatorState,
+                    onRetry = { indicatorViewModel.loadDolar() }
+                )
             }
 
             // Resumen de Métricas (Tarjetas)

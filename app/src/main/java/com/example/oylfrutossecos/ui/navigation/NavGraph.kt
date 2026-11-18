@@ -41,6 +41,7 @@ import com.example.oylfrutossecos.ui.screens.WelcomeScreen
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ForgotPasswordViewModel
+import com.example.oylfrutossecos.ui.viewmodel.IndicatorViewModel
 import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 import com.example.oylfrutossecos.ui.viewmodel.SalesViewModel
@@ -54,7 +55,8 @@ fun AppNavGraph(
     productViewModel: ProductViewModel = viewModel(),
     cartViewModel: CartViewModel = viewModel(),
     salesViewModel: SalesViewModel = viewModel(),
-    notificationViewModel: NotificationViewModel = viewModel()
+    notificationViewModel: NotificationViewModel = viewModel(),
+    indicatorViewModel: IndicatorViewModel = viewModel()
 ) {
     NavHost(
         navController = navController,
@@ -172,6 +174,7 @@ fun AppNavGraph(
                 productViewModel = productViewModel,
                 salesViewModel = salesViewModel,
                 notificationViewModel = notificationViewModel,
+                indicatorViewModel = indicatorViewModel,
                 onNavigateToCatalog = { navController.navigate(Screen.ProductCatalog.createRoute("Todos")) },
                 onNavigateToCategories = { navController.navigate(Screen.CategoryList.route) },
                 onNavigateToAddProduct = { navController.navigate(Screen.AddEditProduct.createRoute(0L)) },
@@ -223,6 +226,7 @@ fun AppNavGraph(
                 productViewModel = productViewModel,
                 cartViewModel = cartViewModel,
                 notificationViewModel = notificationViewModel,
+                indicatorViewModel = indicatorViewModel,
                 onNavigateToDetail = { productId ->
                     navController.navigate(Screen.ProductDetail.createRoute(productId))
                 },
@@ -259,6 +263,7 @@ fun AppNavGraph(
                 authViewModel = authViewModel,
                 productViewModel = productViewModel,
                 cartViewModel = cartViewModel,
+                indicatorViewModel = indicatorViewModel,
                 onNavigateToEdit = { id ->
                     navController.navigate(Screen.AddEditProduct.createRoute(id))
                 },

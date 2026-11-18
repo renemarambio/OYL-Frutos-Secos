@@ -77,6 +77,10 @@ import com.example.oylfrutossecos.ui.theme.StatusWarning
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.oylfrutossecos.ui.viewmodel.IndicatorUiState
+import com.example.oylfrutossecos.ui.viewmodel.IndicatorViewModel
+import java.util.Locale
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,6 +90,7 @@ fun ProductDetailScreen(
     authViewModel: AuthViewModel,
     productViewModel: ProductViewModel,
     cartViewModel: CartViewModel,
+    indicatorViewModel: IndicatorViewModel = viewModel(),
     onNavigateToEdit: (Long) -> Unit,
     onNavigateToCart: () -> Unit = {},
     onNavigateBack: () -> Unit
@@ -93,6 +98,7 @@ fun ProductDetailScreen(
     val selectedProduct by productViewModel.selectedProduct.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val indicatorState by indicatorViewModel.uiState.collectAsState()
     val isAdmin = currentUser?.role == UserRole.ADMIN
 
     var quantity by remember { mutableIntStateOf(1) }
@@ -240,13 +246,28 @@ fun ProductDetailScreen(
                             }
                         }
 
-                        Text(
-                            text = product.formattedPrice,
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                color = BrandPrimary
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = product.formattedPrice,
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = BrandPrimary
+                                )
                             )
-                        )
+                            if (indicatorState is IndicatorUiState.Success) {
+                                val valorDolar = (indicatorState as IndicatorUiState.Success).valorDolar
+                                if (valorDolar > 0) {
+                                    val usdPrice = String.format(Locale.US, "%.2f", product.price / valorDolar)
+                                    Text(
+                                        text = "≈ US$ $usdPrice",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = BrandSecondary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
