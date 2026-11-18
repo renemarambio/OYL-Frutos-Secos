@@ -1,0 +1,49 @@
+# Levanta MySQL + los dos microservicios:  docker compose up --build
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: oyl-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: oyl1234
+    ports:
+      - "3307:3306"            # 3307 para no chocar con XAMPP (3306)
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-poyl1234"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ms-productos:
+    build: ./ms-productos
+    container_name: oyl-ms-productos
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/oyl_productos?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Santiago
+      DB_USER: root
+      DB_PASSWORD: oyl1234
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  ms-pedidos:
+    build: ./ms-pedidos
+    container_name: oyl-ms-pedidos
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/oyl_pedidos?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Santiago
+      DB_USER: root
+      DB_PASSWORD: oyl1234
+      PRODUCTS_BASE_URL: http://ms-productos:8081
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ms-productos:
+        condition: service_started
+
+volumes:
+  mysql-data:

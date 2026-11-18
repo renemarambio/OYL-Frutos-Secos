@@ -1,0 +1,25 @@
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: ms-productos
+  datasource:
+    # XAMPP: usuario root sin contraseña. Docker: se sobreescribe con variables de entorno.
+    url: ${DB_URL:jdbc:mysql://localhost:3306/oyl_productos?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Santiago}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+
+app:
+  seed:
+    enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
