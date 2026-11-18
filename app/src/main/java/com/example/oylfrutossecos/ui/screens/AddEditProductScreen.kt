@@ -66,6 +66,14 @@ import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusError
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditProductScreen(
@@ -76,8 +84,12 @@ fun AddEditProductScreen(
     onNavigateBack: () -> Unit
 ) {
     val formState by productViewModel.formState.collectAsState()
+    val isOffline by productViewModel.isOffline.collectAsState()
+    val offlineMessage by productViewModel.offlineMessage.collectAsState()
     var categoryExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val categories = listOf("Frutos Secos", "Semillas", "Deshidratados", "Mixes Especiales")
 
@@ -106,9 +118,13 @@ fun AddEditProductScreen(
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
-                        productViewModel.deleteProduct(formState.id) {
-                            onNavigateBack()
-                        }
+                        productViewModel.deleteProduct(
+                            id = formState.id,
+                            onSuccess = { onNavigateBack() },
+                            onError = { msg ->
+                                coroutineScope.launch { snackbarHostState.showSnackbar(msg) }
+                            }
+                        )
                     }
                 ) {
                     Text("Eliminar", color = StatusError, fontWeight = FontWeight.Bold)
@@ -123,6 +139,7 @@ fun AddEditProductScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -143,11 +160,22 @@ fun AddEditProductScreen(
                 },
                 actions = {
                     if (formState.id > 0) {
-                        IconButton(onClick = { showDeleteDialog = true }) {
+                        IconButton(
+                            onClick = {
+                                if (!isOffline) {
+                                    showDeleteDialog = true
+                                } else {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Sin conexión con el servidor — no se puede eliminar.")
+                                    }
+                                }
+                            },
+                            enabled = !isOffline
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Eliminar",
-                                tint = Color.White
+                                tint = if (isOffline) Color.LightGray else Color.White
                             )
                         }
                     }
@@ -163,8 +191,36 @@ fun AddEditProductScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (isOffline) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = offlineMessage ?: "Sin conexión con el servidor — mostrando datos guardados. No es posible crear o editar.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
             // Vista previa de la foto del producto (tomada con la cámara)
             ProductImage(
                 imagePath = formState.imageUrl,
@@ -357,16 +413,21 @@ fun AddEditProductScreen(
             // Botón Guardar
             Button(
                 onClick = {
-                    productViewModel.saveProduct {
-                        onNavigateBack()
-                    }
+                    productViewModel.saveProduct(
+                        onSuccess = { onNavigateBack() },
+                        onError = { msg ->
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(msg)
+                            }
+                        }
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
-                enabled = !formState.isSaving
+                enabled = !formState.isSaving && !isOffline
             ) {
                 if (formState.isSaving) {
                     CircularProgressIndicator(

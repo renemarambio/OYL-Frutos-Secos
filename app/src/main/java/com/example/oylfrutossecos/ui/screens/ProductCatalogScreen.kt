@@ -53,6 +53,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -77,6 +78,7 @@ import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusWarning
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
+import androidx.compose.material.icons.filled.CloudOff
 import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 import kotlinx.coroutines.launch
@@ -103,6 +105,8 @@ fun ProductCatalogScreen(
     val searchQuery by productViewModel.searchQuery.collectAsState()
     val selectedCategory by productViewModel.selectedCategory.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
+    val isOffline by productViewModel.isOffline.collectAsState()
+    val offlineMessage by productViewModel.offlineMessage.collectAsState()
     val cartCount by cartViewModel.totalItemsCount.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
     val isAdmin = currentUser?.role == UserRole.ADMIN
@@ -208,8 +212,16 @@ fun ProductCatalogScreen(
             // Solo el ADMIN puede agregar nuevos productos
             if (isAdmin) {
                 FloatingActionButton(
-                    onClick = onNavigateToAddProduct,
-                    containerColor = BrandPrimary,
+                    onClick = {
+                        if (!isOffline) {
+                            onNavigateToAddProduct()
+                        } else {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Sin conexión con el servidor — no es posible crear productos.")
+                            }
+                        }
+                    },
+                    containerColor = if (isOffline) Color.Gray else BrandPrimary,
                     contentColor = Color.White,
                     shape = CircleShape
                 ) {
@@ -224,6 +236,46 @@ fun ProductCatalogScreen(
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            // Aviso de modo sin conexión
+            if (isOffline) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = offlineMessage ?: "Sin conexión con el servidor — mostrando datos guardados",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        TextButton(onClick = { productViewModel.loadData() }) {
+                            Text("Reintentar", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
             // Buscador en tiempo real
             Box(
                 modifier = Modifier

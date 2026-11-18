@@ -4,6 +4,7 @@ import android.app.Application
 import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.oylfrutossecos.data.ServiceLocator
 import com.example.oylfrutossecos.data.local.ImageStorage
 import com.example.oylfrutossecos.data.model.Category
 import com.example.oylfrutossecos.data.model.Product
@@ -36,9 +37,10 @@ data class ProductFormState(
     val isSaving: Boolean = false
 )
 
-class ProductViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository = ProductRepository(application)
+class ProductViewModel(
+    application: Application,
+    private val repository: ProductRepository = ServiceLocator.provideProductRepository(application)
+) : AndroidViewModel(application) {
 
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products.asStateFlow()
@@ -58,6 +60,15 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isOffline = MutableStateFlow(false)
+    val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
+
+    private val _offlineMessage = MutableStateFlow<String?>(null)
+    val offlineMessage: StateFlow<String?> = _offlineMessage.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     private val _formState = MutableStateFlow(ProductFormState())
     val formState: StateFlow<ProductFormState> = _formState.asStateFlow()
 
@@ -68,8 +79,10 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     fun loadData() {
         viewModelScope.launch {
             _isLoading.value = true
+            _errorMessage.value = null
             _products.value = repository.getAllProducts()
             _categories.value = repository.getCategories()
+            updateOfflineStatus()
             _isLoading.value = false
         }
     }
@@ -105,7 +118,17 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                             it.barcode.contains(currentQuery, ignoreCase = true)
                 }
             }
+            updateOfflineStatus()
             _isLoading.value = false
+        }
+    }
+
+    private fun updateOfflineStatus() {
+        _isOffline.value = repository.isOffline
+        _offlineMessage.value = if (repository.isOffline) {
+            "Sin conexión con el servidor — mostrando datos guardados"
+        } else {
+            null
         }
     }
 
@@ -114,6 +137,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
             _isLoading.value = true
             val prod = repository.getProductById(id)
             _selectedProduct.value = prod
+            updateOfflineStatus()
             if (prod != null) {
                 _formState.value = ProductFormState(
                     id = prod.id,
@@ -171,10 +195,6 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /**
-     * Recibe la foto tomada con la cámara, la guarda en el almacenamiento interno
-     * y deja la ruta del archivo en el formulario para persistirla al guardar el producto.
-     */
     fun onPhotoCaptured(bitmap: Bitmap, onSaved: () -> Unit = {}) {
         viewModelScope.launch {
             val path = withContext(Dispatchers.IO) {
@@ -185,9 +205,11 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun saveProduct(onSuccess: (Long) -> Unit) {
+    fun saveProduct(
+        onSuccess: (Long) -> Unit,
+        onError: ((String) -> Unit)? = null
+    ) {
         val state = _formState.value
-        // Validación centralizada en domain/validation/Validators
         val nameErr = Validators.validateProductName(state.name)
         val priceErr = Validators.validatePrice(state.price)
         val stockErr = Validators.validateStock(state.stock)
@@ -197,6 +219,13 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
             _formState.update {
                 it.copy(nameError = nameErr, priceError = priceErr, stockError = stockErr, barcodeError = barcodeErr)
             }
+            return
+        }
+
+        if (_isOffline.value) {
+            val msg = "Sin conexión con el servidor — mostrando datos guardados. No se puede crear ni editar productos."
+            _errorMessage.value = msg
+            onError?.invoke(msg)
             return
         }
 
@@ -219,20 +248,44 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                 imageUrl = state.imageUrl
             )
 
-            val savedId = repository.saveProduct(productToSave)
-            loadData()
-            _formState.update { it.copy(isSaving = false) }
-            onSuccess(savedId)
+            val result = repository.saveProduct(productToSave)
+            result.onSuccess { savedId ->
+                loadData()
+                _formState.update { it.copy(isSaving = false) }
+                onSuccess(savedId)
+            }.onFailure { ex ->
+                _formState.update { it.copy(isSaving = false) }
+                val msg = ex.message ?: "Error al guardar el producto"
+                _errorMessage.value = msg
+                onError?.invoke(msg)
+            }
         }
     }
 
-    fun deleteProduct(id: Long, onSuccess: () -> Unit) {
+    fun deleteProduct(
+        id: Long,
+        onSuccess: () -> Unit,
+        onError: ((String) -> Unit)? = null
+    ) {
+        if (_isOffline.value) {
+            val msg = "Sin conexión con el servidor — mostrando datos guardados. No se puede eliminar en modo sin conexión."
+            _errorMessage.value = msg
+            onError?.invoke(msg)
+            return
+        }
+
         viewModelScope.launch {
             val imagePath = _formState.value.imageUrl
-            repository.deleteProduct(id)
-            withContext(Dispatchers.IO) { ImageStorage.deleteImage(imagePath) }
-            loadData()
-            onSuccess()
+            val result = repository.deleteProduct(id)
+            result.onSuccess {
+                withContext(Dispatchers.IO) { ImageStorage.deleteImage(imagePath) }
+                loadData()
+                onSuccess()
+            }.onFailure { ex ->
+                val msg = ex.message ?: "Error al eliminar producto"
+                _errorMessage.value = msg
+                onError?.invoke(msg)
+            }
         }
     }
 
@@ -248,33 +301,43 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     fun findProductByCode(code: String, onResult: (Product?) -> Unit) {
         viewModelScope.launch {
             val product = repository.getProductByCode(code)
+            updateOfflineStatus()
             onResult(product)
         }
     }
 
     fun adjustStock(productId: Long, delta: Int, onResult: (Boolean) -> Unit = {}) {
+        if (_isOffline.value) {
+            onResult(false)
+            return
+        }
         viewModelScope.launch {
             val currentList = _products.value
             val target = currentList.find { it.id == productId } ?: return@launch
             val newStock = (target.stock + delta).coerceAtLeast(0)
             if (newStock == target.stock) return@launch
 
-            // Actualiza en el StateFlow modificando únicamente el producto ajustado
             _products.update { list ->
                 list.map { if (it.id == productId) it.copy(stock = newStock) else it }
             }
 
-            val success = repository.updateStock(productId, newStock)
-            if (!success) {
+            val result = repository.updateStock(productId, newStock)
+            result.onSuccess {
+                onResult(true)
+            }.onFailure {
                 _products.update { list ->
                     list.map { if (it.id == productId) it.copy(stock = target.stock) else it }
                 }
+                onResult(false)
             }
-            onResult(success)
         }
     }
 
     fun updateStockDirect(productId: Long, newStock: Int, onResult: (Boolean) -> Unit = {}) {
+        if (_isOffline.value) {
+            onResult(false)
+            return
+        }
         viewModelScope.launch {
             val validStock = newStock.coerceAtLeast(0)
             val currentList = _products.value
@@ -288,17 +351,23 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                 list.map { if (it.id == productId) it.copy(stock = validStock) else it }
             }
 
-            val success = repository.updateStock(productId, validStock)
-            if (!success) {
+            val result = repository.updateStock(productId, validStock)
+            result.onSuccess {
+                onResult(true)
+            }.onFailure {
                 _products.update { list ->
                     list.map { if (it.id == productId) it.copy(stock = target.stock) else it }
                 }
+                onResult(false)
             }
-            onResult(success)
         }
     }
 
     fun updatePriceDirect(productId: Long, newPrice: Double, onResult: (Boolean) -> Unit = {}) {
+        if (_isOffline.value) {
+            onResult(false)
+            return
+        }
         viewModelScope.launch {
             if (newPrice <= 0) return@launch
             val currentList = _products.value
@@ -312,13 +381,19 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                 list.map { if (it.id == productId) it.copy(price = newPrice) else it }
             }
 
-            val success = repository.updatePrice(productId, newPrice)
-            if (!success) {
+            val result = repository.updatePrice(productId, newPrice)
+            result.onSuccess {
+                onResult(true)
+            }.onFailure {
                 _products.update { list ->
                     list.map { if (it.id == productId) it.copy(price = target.price) else it }
                 }
+                onResult(false)
             }
-            onResult(success)
         }
+    }
+
+    fun clearErrorMessage() {
+        _errorMessage.value = null
     }
 }

@@ -768,6 +768,53 @@ class AppDatabaseHelper(context: Context) : SQLiteOpenHelper(
         return db.update(TABLE_PRODUCTS, values, "$COL_PROD_ID = ?", arrayOf(id.toString()))
     }
 
+    fun replaceProductsCache(products: List<Product>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete(TABLE_PRODUCTS, null, null)
+            for (product in products) {
+                val values = ContentValues().apply {
+                    put(COL_PROD_ID, product.id)
+                    put(COL_PROD_NAME, product.name)
+                    put(COL_PROD_CATEGORY, product.category)
+                    put(COL_PROD_PRICE, product.price)
+                    put(COL_PROD_STOCK, product.stock)
+                    put(COL_PROD_UNIT, product.unit)
+                    put(COL_PROD_DESCRIPTION, product.description)
+                    put(COL_PROD_INGREDIENTS, product.ingredients)
+                    put(COL_PROD_ORIGIN, product.origin)
+                    put(COL_PROD_BARCODE, product.barcode)
+                    put(COL_PROD_IMAGE_URL, product.imageUrl)
+                    put(COL_PROD_FAVORITE, if (product.isFavorite) 1 else 0)
+                }
+                db.insertWithOnConflict(TABLE_PRODUCTS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    fun insertOrUpdateProduct(product: Product): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            if (product.id > 0) put(COL_PROD_ID, product.id)
+            put(COL_PROD_NAME, product.name)
+            put(COL_PROD_CATEGORY, product.category)
+            put(COL_PROD_PRICE, product.price)
+            put(COL_PROD_STOCK, product.stock)
+            put(COL_PROD_UNIT, product.unit)
+            put(COL_PROD_DESCRIPTION, product.description)
+            put(COL_PROD_INGREDIENTS, product.ingredients)
+            put(COL_PROD_ORIGIN, product.origin)
+            put(COL_PROD_BARCODE, product.barcode)
+            put(COL_PROD_IMAGE_URL, product.imageUrl)
+            put(COL_PROD_FAVORITE, if (product.isFavorite) 1 else 0)
+        }
+        return db.insertWithOnConflict(TABLE_PRODUCTS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
     // --- OPERACIONES DE VENTAS ---
 
     fun insertSaleWithItems(sale: Sale, items: List<SaleItem>): Long {

@@ -74,6 +74,7 @@ import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.theme.StatusWarning
+import androidx.compose.material.icons.filled.CloudOff
 import com.example.oylfrutossecos.ui.viewmodel.ProductViewModel
 import kotlinx.coroutines.launch
 
@@ -87,6 +88,8 @@ fun InventoryScreen(
     val products by productViewModel.products.collectAsState()
     val searchQuery by productViewModel.searchQuery.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
+    val isOffline by productViewModel.isOffline.collectAsState()
+    val offlineMessage by productViewModel.offlineMessage.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -251,6 +254,46 @@ fun InventoryScreen(
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            // Aviso de modo sin conexión
+            if (isOffline) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = offlineMessage ?: "Sin conexión con el servidor — mostrando datos guardados",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        TextButton(onClick = { productViewModel.loadData() }) {
+                            Text("Reintentar", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
             // Tarjetas de Resumen
             Row(
                 modifier = Modifier
@@ -439,7 +482,7 @@ fun InventoryScreen(
                                             onClick = { productViewModel.adjustStock(product.id, -1) },
                                             modifier = Modifier.size(32.dp),
                                             shape = CircleShape,
-                                            enabled = product.stock > 0
+                                            enabled = !isOffline && product.stock > 0
                                         ) {
                                             Icon(Icons.Default.Remove, contentDescription = "Menos", modifier = Modifier.size(16.dp))
                                         }
@@ -452,7 +495,7 @@ fun InventoryScreen(
                                             ),
                                             modifier = Modifier
                                                 .padding(horizontal = 10.dp)
-                                                .clickable {
+                                                .clickable(enabled = !isOffline) {
                                                     productToAdjustStock = product
                                                     newStockInput = product.stock.toString()
                                                     stockError = null
@@ -462,7 +505,8 @@ fun InventoryScreen(
                                         OutlinedIconButton(
                                             onClick = { productViewModel.adjustStock(product.id, +1) },
                                             modifier = Modifier.size(32.dp),
-                                            shape = CircleShape
+                                            shape = CircleShape,
+                                            enabled = !isOffline
                                         ) {
                                             Icon(Icons.Default.Add, contentDescription = "Más", modifier = Modifier.size(16.dp))
                                         }
@@ -475,7 +519,8 @@ fun InventoryScreen(
                                                 productToEditPrice = product
                                                 newPriceInput = product.price.toInt().toString()
                                                 priceError = null
-                                            }
+                                            },
+                                            enabled = !isOffline
                                         ) {
                                             Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
@@ -483,7 +528,8 @@ fun InventoryScreen(
                                         }
 
                                         TextButton(
-                                            onClick = { onNavigateToEditProduct(product.id) }
+                                            onClick = { onNavigateToEditProduct(product.id) },
+                                            enabled = !isOffline
                                         ) {
                                             Text("Ficha")
                                         }
