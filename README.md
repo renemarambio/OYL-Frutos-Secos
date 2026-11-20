@@ -309,3 +309,9 @@ Superación del 80 % exigido en las capas de ViewModels, Repositorios, Validacio
 ![Reporte Cobertura JaCoCo](docs/cobertura.png)
 
 Para un desglose detallado de las **184 pruebas unitarias** (100 % de aprobación y 82.74 % de cobertura de instrucciones), consultar el documento [docs/cobertura.md](docs/cobertura.md).
+
+## Planificacion (Trello)
+
+Tablero: https://trello.com/b/6affe479cd4edf081789eb6e/oyl-frutos-secos
+
+![Tablero Trello](docs/trello.png)
