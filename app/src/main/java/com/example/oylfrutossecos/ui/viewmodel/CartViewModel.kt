@@ -1,7 +1,10 @@
 package com.example.oylfrutossecos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.oylfrutossecos.data.local.MockDataProvider
 import com.example.oylfrutossecos.data.model.CartItem
 import com.example.oylfrutossecos.data.model.DeliveryZone
@@ -22,6 +25,12 @@ import kotlin.math.sqrt
 class CartViewModel : ViewModel() {
 
     companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                CartViewModel()
+            }
+        }
+
         // Coordenadas fijas de Casa Matriz OYL (Providencia #1820, Santiago)
         const val STORE_LAT = -33.42628
         const val STORE_LNG = -70.61254

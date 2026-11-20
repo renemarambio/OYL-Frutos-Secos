@@ -3,7 +3,10 @@ package com.example.oylfrutossecos.ui.viewmodel
 import android.app.Application
 import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.oylfrutossecos.data.ServiceLocator
 import com.example.oylfrutossecos.data.local.ImageStorage
 import com.example.oylfrutossecos.data.model.Category
@@ -397,5 +400,17 @@ class ProductViewModel(
 
     fun clearErrorMessage() {
         _errorMessage.value = null
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+                ProductViewModel(
+                    application = application,
+                    repository = ServiceLocator.provideProductRepository(application)
+                )
+            }
+        }
     }
 }

@@ -1,7 +1,10 @@
 package com.example.oylfrutossecos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.oylfrutossecos.data.ServiceLocator
 import com.example.oylfrutossecos.data.repository.IndicatorRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,6 +68,16 @@ class IndicatorViewModel(
             }
         } catch (_: Exception) {
             raw
+        }
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                IndicatorViewModel(
+                    repository = ServiceLocator.provideIndicatorRepository()
+                )
+            }
         }
     }
 }

@@ -2,7 +2,10 @@ package com.example.oylfrutossecos.ui.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.oylfrutossecos.data.model.User
 import com.example.oylfrutossecos.data.model.UserRole
 import com.example.oylfrutossecos.data.repository.AuthRepository
@@ -424,5 +427,15 @@ class AuthViewModel(
         _registerState.update { RegisterUiState() }
         _profileState.update { ProfileUiState() }
         onLoggedOut()
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                AuthViewModel(
+                    authRepository = AuthRepository.getInstance()
+                )
+            }
+        }
     }
 }

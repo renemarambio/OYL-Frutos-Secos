@@ -86,7 +86,7 @@ fun HomeScreen(
     productViewModel: ProductViewModel,
     salesViewModel: SalesViewModel,
     notificationViewModel: NotificationViewModel,
-    indicatorViewModel: IndicatorViewModel = viewModel(),
+    indicatorViewModel: IndicatorViewModel = viewModel(factory = IndicatorViewModel.Factory),
     onNavigateToCatalog: () -> Unit,
     onNavigateToCategories: () -> Unit,
     onNavigateToAddProduct: () -> Unit,

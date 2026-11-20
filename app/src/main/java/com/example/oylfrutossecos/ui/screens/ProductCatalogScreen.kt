@@ -93,7 +93,7 @@ fun ProductCatalogScreen(
     productViewModel: ProductViewModel,
     cartViewModel: CartViewModel,
     notificationViewModel: NotificationViewModel,
-    indicatorViewModel: IndicatorViewModel = viewModel(),
+    indicatorViewModel: IndicatorViewModel = viewModel(factory = IndicatorViewModel.Factory),
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToAddProduct: () -> Unit,
     onNavigateToCart: () -> Unit,

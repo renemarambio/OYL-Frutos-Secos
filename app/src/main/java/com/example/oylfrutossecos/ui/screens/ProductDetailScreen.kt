@@ -90,7 +90,7 @@ fun ProductDetailScreen(
     authViewModel: AuthViewModel,
     productViewModel: ProductViewModel,
     cartViewModel: CartViewModel,
-    indicatorViewModel: IndicatorViewModel = viewModel(),
+    indicatorViewModel: IndicatorViewModel = viewModel(factory = IndicatorViewModel.Factory),
     onNavigateToEdit: (Long) -> Unit,
     onNavigateToCart: () -> Unit = {},
     onNavigateBack: () -> Unit

@@ -6,7 +6,10 @@ import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.oylfrutossecos.data.local.AppDatabaseHelper
 import com.example.oylfrutossecos.data.local.VerifyCodeResult
 import com.example.oylfrutossecos.data.model.User
@@ -479,5 +482,16 @@ class ForgotPasswordViewModel(
         super.onCleared()
         resendTimerJob?.cancel()
         lockTimerJob?.cancel()
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                ForgotPasswordViewModel(
+                    authRepository = AuthRepository.getInstance(),
+                    deliveryService = DefaultRecoveryDeliveryService()
+                )
+            }
+        }
     }
 }

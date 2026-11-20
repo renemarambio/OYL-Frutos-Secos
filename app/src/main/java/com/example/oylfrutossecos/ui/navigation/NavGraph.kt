@@ -51,12 +51,12 @@ private const val TRANSITION_MS = 350
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
-    authViewModel: AuthViewModel = viewModel(),
-    productViewModel: ProductViewModel = viewModel(),
-    cartViewModel: CartViewModel = viewModel(),
-    salesViewModel: SalesViewModel = viewModel(),
-    notificationViewModel: NotificationViewModel = viewModel(),
-    indicatorViewModel: IndicatorViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(factory = AuthViewModel.Factory),
+    productViewModel: ProductViewModel = viewModel(factory = ProductViewModel.Factory),
+    cartViewModel: CartViewModel = viewModel(factory = CartViewModel.Factory),
+    salesViewModel: SalesViewModel = viewModel(factory = SalesViewModel.Factory),
+    notificationViewModel: NotificationViewModel = viewModel(factory = NotificationViewModel.Factory),
+    indicatorViewModel: IndicatorViewModel = viewModel(factory = IndicatorViewModel.Factory)
 ) {
     NavHost(
         navController = navController,
@@ -145,7 +145,7 @@ fun AppNavGraph(
 
         // 4.1 Forgot Password Screen (Flujo de recuperación de contraseña de 4 pasos)
         composable(Screen.ForgotPassword.route) {
-            val forgotPasswordViewModel: ForgotPasswordViewModel = viewModel()
+            val forgotPasswordViewModel: ForgotPasswordViewModel = viewModel(factory = ForgotPasswordViewModel.Factory)
             ForgotPasswordScreen(
                 viewModel = forgotPasswordViewModel,
                 onNavigateBack = { navController.popBackStack() },

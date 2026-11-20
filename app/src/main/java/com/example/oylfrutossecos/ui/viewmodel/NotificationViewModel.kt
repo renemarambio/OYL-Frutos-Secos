@@ -1,6 +1,9 @@
 package com.example.oylfrutossecos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.oylfrutossecos.data.model.AppNotification
 import com.example.oylfrutossecos.data.model.NotificationTarget
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +50,12 @@ class NotificationViewModel : ViewModel() {
     }
 
     companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                NotificationViewModel()
+            }
+        }
+
         val initialNotifications = listOf(
             // Notificaciones para ADMINISTRADOR
             AppNotification(

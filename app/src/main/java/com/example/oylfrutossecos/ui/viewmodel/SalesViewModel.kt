@@ -2,7 +2,10 @@ package com.example.oylfrutossecos.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.oylfrutossecos.data.ServiceLocator
 import com.example.oylfrutossecos.data.model.CartItem
 import com.example.oylfrutossecos.data.model.Sale
@@ -204,6 +207,18 @@ class SalesViewModel(
             }.onFailure { error ->
                 val msg = error.message ?: "Error al eliminar pedido"
                 onResult(false, msg)
+            }
+        }
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+                SalesViewModel(
+                    application = application,
+                    repository = ServiceLocator.provideSalesRepository(application)
+                )
             }
         }
     }
