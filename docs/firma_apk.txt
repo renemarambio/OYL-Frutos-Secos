@@ -1,0 +1,17 @@
+﻿Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Rene Marambio, O=OYL Frutos Secos, C=CL
+Signer #1 certificate SHA-256 digest: 0e0bd29da458cd541d17a6eb607b0f5b746daddcfe1a5fae709992b9857f464d
+Signer #1 certificate SHA-1 digest: 90f50d4de7f7d2033c6dcc524cd392e7aadb4a35
+Signer #1 certificate MD5 digest: d4768d3c483267fa6ba1ddd0686d8337
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: 3823d7a9c6da23dab571e2f11362181c3ddc3bef586c4127da9464a3abd8131a
+Signer #1 public key SHA-1 digest: a04147039aa1351b36f538dde02cd4c753d51408
+Signer #1 public key MD5 digest: e5bc7d96c73e33d0a518394ec0fff7a8

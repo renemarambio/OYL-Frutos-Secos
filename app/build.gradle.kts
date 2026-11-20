@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -29,12 +32,32 @@ android {
         buildConfigField("String", "INDICATORS_BASE_URL", "\"https://mindicador.cl/\"")
     }
 
+    val keystorePropsFile = rootProject.file("keystore.properties")
+    val keystoreProps = Properties().apply {
+        if (keystorePropsFile.exists()) {
+            FileInputStream(keystorePropsFile).use { load(it) }
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            val storePath = keystoreProps.getProperty("storeFile") ?: "keystore/oyl-release.jks"
+            val cleanPath = storePath.removePrefix("../")
+            val candidateFile = rootProject.file(cleanPath)
+            storeFile = if (candidateFile.exists()) candidateFile else rootProject.file(storePath)
+            storePassword = keystoreProps.getProperty("storePassword")
+            keyAlias = keystoreProps.getProperty("keyAlias")
+            keyPassword = keystoreProps.getProperty("keyPassword")
+        }
+    }
+
     buildTypes {
         debug {
             enableUnitTestCoverage = true
         }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
