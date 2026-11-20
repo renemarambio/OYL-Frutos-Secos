@@ -69,10 +69,26 @@ object Validators {
         }
     }
 
+    /**
+     * Parsea un precio ingresado en CLP eliminando puntos de miles, signo $ y espacios.
+     * En CLP solo se aceptan montos enteros ("12.000" -> 12000.0).
+     */
+    fun parsePrice(price: String): Double? {
+        val clean = price.trim()
+            .replace("$", "")
+            .replace(".", "")
+            .replace(" ", "")
+            .trim()
+        if (clean.isBlank()) return null
+        val longVal = clean.toLongOrNull() ?: return null
+        return longVal.toDouble()
+    }
+
     fun validatePrice(price: String): String? {
-        val value = price.trim().toDoubleOrNull()
+        val raw = price.trim()
+        if (raw.isBlank()) return "El precio es obligatorio"
+        val value = parsePrice(raw)
         return when {
-            price.isBlank() -> "El precio es obligatorio"
             value == null -> "Ingresa solo números"
             value <= 0 -> "El precio debe ser mayor a 0"
             value > MAX_PRICE -> "El precio no puede superar $1.000.000"

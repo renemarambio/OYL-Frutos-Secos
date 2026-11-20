@@ -58,11 +58,21 @@ class ValidatorsTest {
     @Test
     fun precio_y_stock() {
         assertNull(Validators.validatePrice("9900"))
+        assertNull(Validators.validatePrice("12.000"))
+        assertNull(Validators.validatePrice("1.000.000"))
         assertNotNull(Validators.validatePrice(""))
         assertNotNull(Validators.validatePrice("0"))
         assertNotNull(Validators.validatePrice("-100"))
         assertNotNull(Validators.validatePrice("abc"))
         assertNotNull(Validators.validatePrice("1000001"))
+        assertNotNull(Validators.validatePrice("1.000.001"))
+
+        assertEquals(12000.0, Validators.parsePrice("12.000")!!, 0.001)
+        assertEquals(12000.0, Validators.parsePrice("12000")!!, 0.001)
+        assertEquals(1500000.0, Validators.parsePrice("1.500.000")!!, 0.001)
+        assertEquals(25000.0, Validators.parsePrice("$ 25.000")!!, 0.001)
+        assertNull(Validators.parsePrice(""))
+        assertNull(Validators.parsePrice("abc"))
 
         assertNull(Validators.validateStock("25"))
         assertNotNull(Validators.validateStock(""))

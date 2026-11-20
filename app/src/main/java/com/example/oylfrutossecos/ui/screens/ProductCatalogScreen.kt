@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -40,10 +41,13 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,8 +63,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -119,6 +125,7 @@ fun ProductCatalogScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    var showOverflowMenu by remember { mutableStateOf(false) }
 
     val categoriesFilter = listOf("Todos", "Frutos Secos", "Semillas", "Deshidratados", "Mixes Especiales")
 
@@ -130,7 +137,8 @@ fun ProductCatalogScreen(
                     Text(
                         text = "Catálogo de Frutos Secos",
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color.White,
+                        maxLines = 1
                     )
                 },
                 navigationIcon = {
@@ -143,13 +151,12 @@ fun ProductCatalogScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToLocalesMap) {
-                        Icon(
-                            imageVector = Icons.Default.Storefront,
-                            contentDescription = "Nuestros Locales",
-                            tint = Color.White
-                        )
+                    // Carrito siempre accesible para clientes
+                    if (!isAdmin) {
+                        CartIconButton(cartCount = cartCount, onClick = onNavigateToCart)
                     }
+
+                    // Notificaciones con badge de no leídas
                     IconButton(onClick = onNavigateToNotifications) {
                         BadgedBox(
                             badge = {
@@ -174,38 +181,90 @@ fun ProductCatalogScreen(
                             )
                         }
                     }
-                    IconButton(onClick = onNavigateToScanner) {
-                        Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
-                            contentDescription = "Escanear QR",
-                            tint = Color.White
-                        )
-                    }
-                    // Solo el CLIENTE tiene acceso al carrito y a sus pedidos personales
-                    if (!isAdmin) {
-                        IconButton(onClick = onNavigateToMyOrders) {
+
+                    // Menú ⋮ con acciones secundarias
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(
-                                imageVector = Icons.Default.ReceiptLong,
-                                contentDescription = "Mis Pedidos",
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Más opciones",
                                 tint = Color.White
                             )
                         }
-                        CartIconButton(cartCount = cartCount, onClick = onNavigateToCart)
-                        IconButton(onClick = onNavigateToProfile) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Perfil",
-                                tint = Color.White
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Escanear QR / Código") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.QrCodeScanner,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onNavigateToScanner()
+                                }
                             )
-                        }
-                    }
-                    if (onLogout != null) {
-                        IconButton(onClick = onLogout) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = "Cerrar sesión",
-                                tint = Color.White
+                            DropdownMenuItem(
+                                text = { Text("Nuestros Locales") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Storefront,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onNavigateToLocalesMap()
+                                }
                             )
+                            if (!isAdmin) {
+                                DropdownMenuItem(
+                                    text = { Text("Mis Pedidos") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.ReceiptLong,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        onNavigateToMyOrders()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Mi Perfil") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        onNavigateToProfile()
+                                    }
+                                )
+                            }
+                            if (onLogout != null) {
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("Cerrar sesión") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        onLogout()
+                                    }
+                                )
+                            }
                         }
                     }
                 },

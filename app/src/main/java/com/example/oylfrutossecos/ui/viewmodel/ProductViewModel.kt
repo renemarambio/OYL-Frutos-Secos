@@ -234,7 +234,7 @@ class ProductViewModel(
             return
         }
 
-        val priceVal = state.price.trim().toDouble()
+        val priceVal = Validators.parsePrice(state.price) ?: 0.0
         val stockVal = state.stock.trim().toInt()
 
         viewModelScope.launch {

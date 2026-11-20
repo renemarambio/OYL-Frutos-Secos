@@ -144,7 +144,7 @@ fun InventoryScreen(
                             priceError = err
                             return@Button
                         }
-                        val priceVal = newPriceInput.toDoubleOrNull() ?: return@Button
+                        val priceVal = Validators.parsePrice(newPriceInput) ?: return@Button
                         productViewModel.updatePriceDirect(prod.id, priceVal) { success ->
                             productToEditPrice = null
                             coroutineScope.launch {

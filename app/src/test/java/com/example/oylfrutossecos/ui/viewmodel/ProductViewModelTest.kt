@@ -9,6 +9,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -203,6 +204,32 @@ class ProductViewModelTest {
         assertEquals(10L, savedId)
         assertFalse(viewModel.formState.value.isSaving)
         coVerify(atLeast = 1) { repository.saveProduct(any()) }
+    }
+
+    @Test
+    fun saveProduct_precioConPuntosDeMiles_convierteAEnteroCorrecto() = runTest {
+        val capturedProduct = slot<Product>()
+        coEvery { repository.saveProduct(capture(capturedProduct)) } returns Result.success(99L)
+
+        val viewModel = ProductViewModel(application, repository, mainDispatcherRule.testDispatcher)
+        advanceUntilIdle()
+
+        viewModel.onFormFieldChanged(
+            name = "Nueces Selección",
+            category = "Frutos Secos",
+            price = "12.000",
+            stock = "50",
+            unit = "kg",
+            barcode = "780999999999"
+        )
+
+        var savedId: Long? = null
+        viewModel.saveProduct(onSuccess = { savedId = it })
+        advanceUntilIdle()
+
+        assertEquals(99L, savedId)
+        assertTrue(capturedProduct.isCaptured)
+        assertEquals(12000.0, capturedProduct.captured.price, 0.001)
     }
 
     @Test
