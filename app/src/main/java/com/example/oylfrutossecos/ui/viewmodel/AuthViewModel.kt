@@ -69,9 +69,9 @@ data class ProfileUiState(
     val isLoading: Boolean = false
 )
 
-class AuthViewModel : ViewModel() {
-
-    private val authRepository = AuthRepository.getInstance()
+class AuthViewModel(
+    private val authRepository: AuthRepository = AuthRepository.getInstance()
+) : ViewModel() {
 
     val currentUser: StateFlow<User?> = authRepository.currentUser
 

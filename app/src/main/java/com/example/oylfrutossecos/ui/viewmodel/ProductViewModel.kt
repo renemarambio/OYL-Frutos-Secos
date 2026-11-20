@@ -10,6 +10,7 @@ import com.example.oylfrutossecos.data.model.Category
 import com.example.oylfrutossecos.data.model.Product
 import com.example.oylfrutossecos.data.repository.ProductRepository
 import com.example.oylfrutossecos.domain.validation.Validators
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +40,8 @@ data class ProductFormState(
 
 class ProductViewModel(
     application: Application,
-    private val repository: ProductRepository = ServiceLocator.provideProductRepository(application)
+    private val repository: ProductRepository = ServiceLocator.provideProductRepository(application),
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AndroidViewModel(application) {
 
     private val _products = MutableStateFlow<List<Product>>(emptyList())
@@ -197,7 +199,7 @@ class ProductViewModel(
 
     fun onPhotoCaptured(bitmap: Bitmap, onSaved: () -> Unit = {}) {
         viewModelScope.launch {
-            val path = withContext(Dispatchers.IO) {
+            val path = withContext(ioDispatcher) {
                 ImageStorage.saveBitmap(getApplication(), bitmap)
             }
             _formState.update { it.copy(imageUrl = path) }
@@ -278,7 +280,7 @@ class ProductViewModel(
             val imagePath = _formState.value.imageUrl
             val result = repository.deleteProduct(id)
             result.onSuccess {
-                withContext(Dispatchers.IO) { ImageStorage.deleteImage(imagePath) }
+                withContext(ioDispatcher) { ImageStorage.deleteImage(imagePath) }
                 loadData()
                 onSuccess()
             }.onFailure { ex ->

@@ -2,6 +2,11 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("jacoco")
+}
+
+jacoco {
+    toolVersion = "0.8.12"
 }
 
 android {
@@ -25,6 +30,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -67,10 +75,50 @@ dependencies {
     // OpenStreetMap (osmdroid) para mapa interactivo de despachos y pedidos
     implementation("org.osmdroid:osmdroid-android:6.1.20")
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.arch.core.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val debugTree = fileTree("${project.layout.buildDirectory.get().asFile}/tmp/kotlin-classes/debug") {
+        include(
+            "com/example/oylfrutossecos/ui/viewmodel/**",
+            "com/example/oylfrutossecos/data/repository/**",
+            "com/example/oylfrutossecos/data/remote/mapper/**",
+            "com/example/oylfrutossecos/domain/validation/**"
+        )
+        exclude(
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.*",
+            "**/Manifest*.*",
+            "**/*Test*.*",
+            "android/**/*.*",
+            "**/AuthRepository*.*"
+        )
+    }
+
+    val mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.setFrom(files(mainSrc))
+    classDirectories.setFrom(files(debugTree))
+    executionData.setFrom(fileTree(project.layout.buildDirectory.get().asFile) {
+        include(
+            "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
+            "jacoco/testDebugUnitTest.exec"
+        )
+    })
 }

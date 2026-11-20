@@ -1,0 +1,113 @@
+# Reporte de Cobertura de Pruebas Unitarias - OYL Frutos Secos
+
+## Resumen Ejecutivo
+
+En cumplimiento con los requisitos de la evaluación **DSY1105 (EP4/EP5)**, se implementó una suite integral de pruebas unitarias utilizando **JUnit 4**, **MockK** y **kotlinx-coroutines-test**, alcanzando una cobertura general del **83 %** en las capas de lógica de negocio y arquitectura limpia, superando el umbral exigido del **80 %**.
+
+El reporte fue generado con la herramienta **JaCoCo (0.8.12)** mediante la tarea Gradle `jacocoTestReport`.
+
+---
+
+## Resultados Generales de JaCoCo
+
+| Métrica | Cubierto / Total | Porcentaje |
+| :--- | :---: | :---: |
+| **Instrucciones (Coverage Principal)** | **11.837 / 14.245** | **83 %** |
+| **Ramas (Branches)** | **529 / 848** | **62 %** |
+| **Líneas de Código** | **1.629 / 1.850** | **88 %** |
+| **Métodos** | **346 / 413** | **83 %** |
+| **Clases Analizadas** | **76 / 82** | **92 %** |
+
+---
+
+## Cobertura por Paquetes de Lógica
+
+Se midieron estrictamente los paquetes que contienen la lógica de negocio, validaciones, mapeos y flujos de datos, excluyendo componentes de UI Compose, vistas Android, temas y clases generadas:
+
+| Paquete | Instrucciones | Cobertura | Ramas | Líneas Cubiertas / Total |
+| :--- | :---: | :---: | :---: | :---: |
+| `com.example.oylfrutossecos.domain.validation` | 561 / 561 | **100 %** | 76 / 76 (100 %) | 95 / 95 |
+| `com.example.oylfrutossecos.data.remote.mapper` | 538 / 554 | **97 %** | 42 / 58 (72 %) | 107 / 107 |
+| `com.example.oylfrutossecos.data.repository` | 2.026 / 2.429 | **83 %** | 97 / 150 (64 %) | 319 / 359 |
+| `com.example.oylfrutossecos.ui.viewmodel` | 8.712 / 10.701 | **81 %** | 314 / 564 (55 %) | 1.108 / 1.289 |
+| **TOTAL** | **11.837 / 14.245** | **83 %** | **529 / 848 (62 %)** | **1.629 / 1.850** |
+
+---
+
+## Detalle de la Suite de Pruebas Unitarias (133 Tests)
+
+Todas las pruebas se ejecutan de manera aislada, sin depender de red externa ni bases de datos físicas:
+
+### 1. Repositorios (`data/repository`)
+- **`ProductRepositoryTest`**:
+  - Obtención de catálogo remoto exitoso y persistencia automática en caché local SQLite.
+  - Fallo de conexión de red -> fallback a la caché local SQLite con mensaje informativo.
+  - Creación, actualización y eliminación de productos contra `ms-productos`.
+  - Manejo de respuestas HTTP 409 (conflicto/código duplicado) y 404 (no encontrado).
+  - Actualización de stock mediante PATCH.
+- **`SalesRepositoryTest`**:
+  - Creación de órdenes mapeando correctamente `OrderRequestDto` hacia `ms-pedidos`.
+  - Filtrado de pedidos por correo del cliente (`customerEmail`).
+  - Obtención de todas las órdenes para el rol administrador.
+  - Actualización de estado del pedido (`PATCH api/orders/{id}/status`).
+  - Manejo de error 409 (stock insuficiente) mapeado a `Result.failure` con mensaje descriptivo.
+  - Eliminación de órdenes.
+- **`IndicatorRepositoryTest`**:
+  - Consulta exitosa del valor del dólar y UF desde la API de mindicador.cl.
+  - Manejo de excepciones de red y respuestas fallidas.
+- **`CartRepositoryTest`**:
+  - Estado del carrito reactivo (StateFlow), cálculo de subtotal, IVA (19 %), costo de envío según distancia y conteo de ítems.
+
+### 2. ViewModels (`ui/viewmodel`)
+- **`ProductViewModelTest`**:
+  - Carga inicial de productos y filtrado por categoría o búsqueda de texto.
+  - Validaciones de formulario (nombre, precio, stock, código de barras, categoría).
+  - Bloqueo de acciones de mutación (crear/editar/eliminar) en modo sin conexión (caché).
+  - Operaciones CRUD exitosas y propagación de estados de error/éxito en la UI.
+- **`SalesViewModelTest`**:
+  - Carga de pedidos de clientes y pedidos globales de administrador.
+  - Validación de campos requeridos durante el checkout.
+  - Creación de pedidos, actualización de estados de despacho y eliminación de pedidos.
+- **`IndicatorViewModelTest`**:
+  - Transición de estados `Loading` -> `Success` / `Error`.
+  - Formateo legible de fecha y valor del dólar observado.
+- **`CartViewModelTest`**:
+  - Agregar productos al carrito, incrementar/decrementar cantidades y remover productos.
+  - Cálculo dinámico de tarifa de despacho a partir de distancia de geolocalización.
+  - Vaciado del carrito posterior a la compra.
+- **`AuthViewModelTest`**:
+  - Validación de credenciales de inicio de sesión y registro de usuarios.
+  - Persistencia de sesión en memoria / sesión activa.
+  - Actualización de datos de perfil y cierre de sesión.
+- **`ForgotPasswordViewModelTest`**:
+  - Flujo de recuperación de contraseña: validación de correo, selección de método (código SMS/Email o pregunta de seguridad).
+  - Validación y establecimiento de nueva contraseña.
+- **`NotificationViewModelTest`**:
+  - Filtrado de notificaciones por rol de usuario (cliente vs admin).
+  - Marcado de notificaciones como leídas y conteo de no leídas.
+
+### 3. Mapeadores y Utilitarios (`data/remote/mapper`, `domain/validation`)
+- **`MappersTest`**:
+  - Mapeo bidireccional de DTOs (`ProductDto`, `OrderDto`, `OrderItemDto`, `CategoryDto`) a modelos de dominio (`Product`, `Sale`, `SaleItem`).
+  - Mapeo de estados legibles en español: `PENDING` -> "Pendiente", `PROCESSING` -> "En preparación", `SHIPPED` -> "En camino", `DELIVERED` -> "Entregado", `CANCELLED` -> "Cancelado".
+- **`ValidatorsTest`**:
+  - Cobertura del 100 % de reglas de validación de correo, RUT chileno (módulo 11), contraseñas seguras, teléfonos y nombres.
+- **`ApiErrorParserTest`**:
+  - Extracción y parseo de errores estándar de Spring Boot (códigos 400 con mapa de campos y 409 con mensaje de negocio).
+
+---
+
+## Instrucciones para Reproducir el Reporte
+
+Para compilar, ejecutar las 133 pruebas unitarias y regenerar el reporte JaCoCo:
+
+```bash
+# En Windows (PowerShell o CMD)
+.\gradlew.bat testDebugUnitTest jacocoTestReport
+
+# En Linux / macOS
+./gradlew testDebugUnitTest jacocoTestReport
+```
+
+El reporte interactivo en HTML se encuentra disponible en:
+`app/build/reports/jacoco/jacocoTestReport/html/index.html`
