@@ -20,13 +20,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +45,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +61,7 @@ import com.example.oylfrutossecos.data.model.UserRole
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
+import com.example.oylfrutossecos.ui.theme.StatusError
 import com.example.oylfrutossecos.ui.theme.StatusWarning
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
@@ -65,6 +71,7 @@ import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
 fun NotificationsScreen(
     authViewModel: AuthViewModel,
     notificationViewModel: NotificationViewModel,
+    onNavigateToScreen: ((String) -> Unit)? = null,
     onNavigateBack: () -> Unit
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -73,6 +80,30 @@ fun NotificationsScreen(
     val allNotifications by notificationViewModel.notifications.collectAsState()
     val notifications = notificationViewModel.getNotificationsForRole(isAdmin)
     val unreadCount = notifications.count { !it.isRead }
+    var showClearAllDialog by remember { mutableStateOf(false) }
+
+    if (showClearAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearAllDialog = false },
+            title = { Text("¿Eliminar todas las notificaciones?") },
+            text = { Text("Se borrarán todas las notificaciones de tu lista de forma permanente.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        notificationViewModel.deleteAllNotifications(isAdmin)
+                        showClearAllDialog = false
+                    }
+                ) {
+                    Text("Borrar todas", color = StatusError, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearAllDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -101,17 +132,25 @@ fun NotificationsScreen(
                 },
                 actions = {
                     if (unreadCount > 0) {
-                        TextButton(
-                            onClick = { notificationViewModel.markAllAsRead(isAdmin) },
-                            colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+                        IconButton(
+                            onClick = { notificationViewModel.markAllAsRead(isAdmin) }
                         ) {
                             Icon(
                                 imageVector = Icons.Default.DoneAll,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                contentDescription = "Marcar todas como leídas",
+                                tint = Color.White
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Marcar todas", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    if (notifications.isNotEmpty()) {
+                        IconButton(
+                            onClick = { showClearAllDialog = true }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteSweep,
+                                contentDescription = "Eliminar todas",
+                                tint = Color.White
+                            )
                         }
                     }
                 },
@@ -125,7 +164,7 @@ fun NotificationsScreen(
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Barra informativa superior con botón para marcar todas como leídas
+            // Barra informativa superior con opciones
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface,
@@ -149,7 +188,7 @@ fun NotificationsScreen(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                         ) {
                             Text(
-                                text = "Marcar todas como leídas",
+                                text = "Marcar leídas",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = BrandPrimary
@@ -196,6 +235,12 @@ fun NotificationsScreen(
                             notification = notification,
                             onNotificationClick = {
                                 notificationViewModel.markAsRead(notification.id)
+                                notification.targetScreen?.let { target ->
+                                    onNavigateToScreen?.invoke(target)
+                                }
+                            },
+                            onDeleteClick = {
+                                notificationViewModel.deleteNotification(notification.id)
                             }
                         )
                     }
@@ -208,7 +253,8 @@ fun NotificationsScreen(
 @Composable
 fun NotificationItemCard(
     notification: AppNotification,
-    onNotificationClick: () -> Unit
+    onNotificationClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val icon: ImageVector = when (notification.type) {
         "STOCK" -> Icons.Default.Warning
@@ -304,30 +350,49 @@ fun NotificationItemCard(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Estado de lectura
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (!notification.isRead) {
-                        Surface(
-                            shape = CircleShape,
-                            color = BrandPrimary,
-                            modifier = Modifier.size(7.dp)
-                        ) {}
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "No leída · Toca para marcar",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Estado de lectura
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (!notification.isRead) {
+                            Surface(
+                                shape = CircleShape,
                                 color = BrandPrimary,
-                                fontWeight = FontWeight.Bold
+                                modifier = Modifier.size(7.dp)
+                            ) {}
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "No leída · Toca para abrir",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    color = BrandPrimary,
+                                    fontWeight = FontWeight.Bold
+                                )
                             )
-                        )
-                    } else {
-                        Text(
-                            text = "Leída",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                color = Color.Gray
+                        } else {
+                            Text(
+                                text = "Leída",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    color = Color.Gray
+                                )
                             )
+                        }
+                    }
+
+                    // Botón para eliminar notificación individual
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Eliminar notificación",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }

@@ -80,6 +80,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SalesHistoryScreen(
     salesViewModel: SalesViewModel,
+    notificationViewModel: com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel? = null,
     onNavigateBack: () -> Unit
 ) {
     val sales by salesViewModel.sales.collectAsState()
@@ -223,6 +224,7 @@ fun SalesHistoryScreen(
                             coroutineScope.launch {
                                 if (success) {
                                     snackbarHostState.showSnackbar("Estado actualizado a $newStatus")
+                                    notificationViewModel?.notifyOrderStatusUpdatedByAdmin(sale.orderNumber, newStatus)
                                     if (selectedSaleDetail?.id == saleId) {
                                         selectedSaleDetail = selectedSaleDetail?.copy(status = newStatus)
                                     }

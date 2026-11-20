@@ -5,6 +5,8 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.example.oylfrutossecos.data.model.AppNotification
+import com.example.oylfrutossecos.data.model.NotificationTarget
 import com.example.oylfrutossecos.data.model.Product
 import com.example.oylfrutossecos.data.model.Sale
 import com.example.oylfrutossecos.data.model.SaleItem
@@ -20,7 +22,7 @@ class AppDatabaseHelper(context: Context) : SQLiteOpenHelper(
 
     companion object {
         const val DATABASE_NAME = "oyl_frutos_secos.db"
-        const val DATABASE_VERSION = 3
+        const val DATABASE_VERSION = 4
 
         // Tabla Productos
         const val TABLE_PRODUCTS = "products"
@@ -86,6 +88,18 @@ class AppDatabaseHelper(context: Context) : SQLiteOpenHelper(
         const val COL_RESET_ATTEMPTS = "attempts"
         const val COL_RESET_LOCKED_UNTIL = "locked_until"
         const val COL_RESET_CREATED_AT = "created_at"
+
+        // Tabla Notificaciones
+        const val TABLE_NOTIFICATIONS = "notifications"
+        const val COL_NOTIF_ID = "id"
+        const val COL_NOTIF_TITLE = "title"
+        const val COL_NOTIF_MESSAGE = "message"
+        const val COL_NOTIF_DATE = "dateFormatted"
+        const val COL_NOTIF_TIMESTAMP = "timestamp"
+        const val COL_NOTIF_IS_READ = "isRead"
+        const val COL_NOTIF_TARGET = "target"
+        const val COL_NOTIF_TYPE = "type"
+        const val COL_NOTIF_TARGET_SCREEN = "targetScreen"
 
         @Volatile
         private var INSTANCE: AppDatabaseHelper? = null
@@ -176,16 +190,32 @@ class AppDatabaseHelper(context: Context) : SQLiteOpenHelper(
             )
         """.trimIndent()
 
+        val createNotificationsTable = """
+            CREATE TABLE IF NOT EXISTS $TABLE_NOTIFICATIONS (
+                $COL_NOTIF_ID TEXT PRIMARY KEY,
+                $COL_NOTIF_TITLE TEXT NOT NULL,
+                $COL_NOTIF_MESSAGE TEXT NOT NULL,
+                $COL_NOTIF_DATE TEXT NOT NULL,
+                $COL_NOTIF_TIMESTAMP INTEGER NOT NULL,
+                $COL_NOTIF_IS_READ INTEGER NOT NULL DEFAULT 0,
+                $COL_NOTIF_TARGET TEXT NOT NULL,
+                $COL_NOTIF_TYPE TEXT NOT NULL,
+                $COL_NOTIF_TARGET_SCREEN TEXT
+            )
+        """.trimIndent()
+
         db.execSQL(createProductsTable)
         db.execSQL(createSalesTable)
         db.execSQL(createSaleItemsTable)
         db.execSQL(createUsersTable)
         db.execSQL(createPasswordResetsTable)
+        db.execSQL(createNotificationsTable)
 
         // Precarga de datos iniciales
         populateMockProducts(db)
         populateMockSales(db)
         populateMockUsers(db)
+        populateInitialNotifications(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -236,6 +266,24 @@ class AppDatabaseHelper(context: Context) : SQLiteOpenHelper(
             db.execSQL(createPasswordResetsTable)
 
             updateMockUsersSecurity(db)
+        }
+
+        if (oldVersion < 4) {
+            val createNotificationsTable = """
+                CREATE TABLE IF NOT EXISTS $TABLE_NOTIFICATIONS (
+                    $COL_NOTIF_ID TEXT PRIMARY KEY,
+                    $COL_NOTIF_TITLE TEXT NOT NULL,
+                    $COL_NOTIF_MESSAGE TEXT NOT NULL,
+                    $COL_NOTIF_DATE TEXT NOT NULL,
+                    $COL_NOTIF_TIMESTAMP INTEGER NOT NULL,
+                    $COL_NOTIF_IS_READ INTEGER NOT NULL DEFAULT 0,
+                    $COL_NOTIF_TARGET TEXT NOT NULL,
+                    $COL_NOTIF_TYPE TEXT NOT NULL,
+                    $COL_NOTIF_TARGET_SCREEN TEXT
+                )
+            """.trimIndent()
+            db.execSQL(createNotificationsTable)
+            populateInitialNotifications(db)
         }
     }
 
@@ -955,9 +1003,226 @@ class AppDatabaseHelper(context: Context) : SQLiteOpenHelper(
         db.execSQL("DELETE FROM $TABLE_PRODUCTS")
         db.execSQL("DELETE FROM $TABLE_USERS")
         db.execSQL("DELETE FROM $TABLE_PASSWORD_RESETS")
+        db.execSQL("DELETE FROM $TABLE_NOTIFICATIONS")
         populateMockProducts(db)
         populateMockSales(db)
         populateMockUsers(db)
+        populateInitialNotifications(db)
+    }
+
+    fun populateInitialNotifications(db: SQLiteDatabase) {
+        val countCursor = db.rawQuery("SELECT COUNT(*) FROM $TABLE_NOTIFICATIONS", null)
+        val count = if (countCursor.moveToFirst()) countCursor.getInt(0) else 0
+        countCursor.close()
+        if (count > 0) return
+
+        val initialList = listOf(
+            AppNotification(
+                id = "notif_admin_1",
+                title = "Stock crítico en arándanos",
+                message = "El stock de Arándanos Deshidratados ha bajado a 3 kg. Se sugiere reorden inmediata al proveedor de Coquimbo.",
+                date = "Hace 15 min",
+                isRead = false,
+                target = NotificationTarget.ADMIN,
+                type = "STOCK",
+                targetScreen = "INVENTORY"
+            ),
+            AppNotification(
+                id = "notif_admin_2",
+                title = "Nuevo pedido recibido",
+                message = "El cliente María González ha generado el pedido #1049 por $32.400 con despacho a Las Condes.",
+                date = "Hace 45 min",
+                isRead = false,
+                target = NotificationTarget.ADMIN,
+                type = "ORDER",
+                targetScreen = "MY_ORDERS"
+            ),
+            AppNotification(
+                id = "notif_admin_3",
+                title = "Alerta de inventario: Castañas de Cajú",
+                message = "Existencias en 8 kg (umbral crítico: 10 kg). Revisar lote en bodega central.",
+                date = "Hoy, 09:30",
+                isRead = false,
+                target = NotificationTarget.ADMIN,
+                type = "STOCK",
+                targetScreen = "INVENTORY"
+            ),
+            AppNotification(
+                id = "notif_admin_4",
+                title = "Resumen diario de ventas",
+                message = "Se completaron 12 despachos en el Gran Santiago con un total facturado de $210.500.",
+                date = "Ayer",
+                isRead = true,
+                target = NotificationTarget.ADMIN,
+                type = "INFO"
+            ),
+            AppNotification(
+                id = "notif_client_1",
+                title = "Tu pedido #1048 fue programado",
+                message = "Tu pedido de Nueces y Almendras está programado para entrega hoy entre 14:00 y 18:00 hrs.",
+                date = "Hace 20 min",
+                isRead = false,
+                target = NotificationTarget.CLIENTE,
+                type = "ORDER",
+                targetScreen = "MY_ORDERS"
+            ),
+            AppNotification(
+                id = "notif_client_2",
+                title = "Nueva oferta en almendras -20%",
+                message = "¡Semana de frutos secos! Disfruta un 20% de descuento en Almendras Nonpareil Tostadas.",
+                date = "Hoy, 10:15",
+                isRead = false,
+                target = NotificationTarget.CLIENTE,
+                type = "PROMO"
+            ),
+            AppNotification(
+                id = "notif_client_3",
+                title = "Despacho en camino",
+                message = "El repartidor OYL va en camino a tu dirección en Providencia con tu pedido #1045.",
+                date = "Ayer",
+                isRead = true,
+                target = NotificationTarget.CLIENTE,
+                type = "ORDER",
+                targetScreen = "MY_ORDERS"
+            ),
+            AppNotification(
+                id = "notif_client_4",
+                title = "Bienvenido a OYL Frutos Secos",
+                message = "Descubre nuestra selección de frutos secos, semillas y mixes saludables con despacho en todo Santiago.",
+                date = "Hace 3 días",
+                isRead = true,
+                target = NotificationTarget.CLIENTE,
+                type = "INFO"
+            )
+        )
+
+        for (n in initialList) {
+            val cv = ContentValues().apply {
+                put(COL_NOTIF_ID, n.id)
+                put(COL_NOTIF_TITLE, n.title)
+                put(COL_NOTIF_MESSAGE, n.message)
+                put(COL_NOTIF_DATE, n.date)
+                put(COL_NOTIF_TIMESTAMP, n.timestamp)
+                put(COL_NOTIF_IS_READ, if (n.isRead) 1 else 0)
+                put(COL_NOTIF_TARGET, n.target.name)
+                put(COL_NOTIF_TYPE, n.type)
+                put(COL_NOTIF_TARGET_SCREEN, n.targetScreen)
+            }
+            db.insertWithOnConflict(TABLE_NOTIFICATIONS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+        }
+    }
+
+    fun getAllNotifications(): List<AppNotification> {
+        val list = mutableListOf<AppNotification>()
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_NOTIFICATIONS,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "$COL_NOTIF_TIMESTAMP DESC"
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(cursorToNotification(it))
+            }
+        }
+        return list
+    }
+
+    fun insertNotification(notification: AppNotification): Long {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put(COL_NOTIF_ID, notification.id)
+            put(COL_NOTIF_TITLE, notification.title)
+            put(COL_NOTIF_MESSAGE, notification.message)
+            put(COL_NOTIF_DATE, notification.date)
+            put(COL_NOTIF_TIMESTAMP, notification.timestamp)
+            put(COL_NOTIF_IS_READ, if (notification.isRead) 1 else 0)
+            put(COL_NOTIF_TARGET, notification.target.name)
+            put(COL_NOTIF_TYPE, notification.type)
+            put(COL_NOTIF_TARGET_SCREEN, notification.targetScreen)
+        }
+        return db.insertWithOnConflict(TABLE_NOTIFICATIONS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun markNotificationAsRead(id: String): Boolean {
+        val db = writableDatabase
+        val cv = ContentValues().apply { put(COL_NOTIF_IS_READ, 1) }
+        return db.update(TABLE_NOTIFICATIONS, cv, "$COL_NOTIF_ID = ?", arrayOf(id)) > 0
+    }
+
+    fun markAllNotificationsAsRead(target: NotificationTarget? = null): Int {
+        val db = writableDatabase
+        val cv = ContentValues().apply { put(COL_NOTIF_IS_READ, 1) }
+        return if (target != null) {
+            db.update(
+                TABLE_NOTIFICATIONS,
+                cv,
+                "$COL_NOTIF_TARGET = ? OR $COL_NOTIF_TARGET = ?",
+                arrayOf(target.name, NotificationTarget.ALL.name)
+            )
+        } else {
+            db.update(TABLE_NOTIFICATIONS, cv, null, null)
+        }
+    }
+
+    fun deleteNotification(id: String): Boolean {
+        val db = writableDatabase
+        return db.delete(TABLE_NOTIFICATIONS, "$COL_NOTIF_ID = ?", arrayOf(id)) > 0
+    }
+
+    fun deleteAllNotifications(target: NotificationTarget? = null): Int {
+        val db = writableDatabase
+        return if (target != null) {
+            db.delete(
+                TABLE_NOTIFICATIONS,
+                "$COL_NOTIF_TARGET = ? OR $COL_NOTIF_TARGET = ?",
+                arrayOf(target.name, NotificationTarget.ALL.name)
+            )
+        } else {
+            db.delete(TABLE_NOTIFICATIONS, null, null)
+        }
+    }
+
+    fun getUnreadNotificationsCount(target: NotificationTarget? = null): Int {
+        val db = readableDatabase
+        val cursor = if (target != null) {
+            db.rawQuery(
+                "SELECT COUNT(*) FROM $TABLE_NOTIFICATIONS WHERE $COL_NOTIF_IS_READ = 0 AND ($COL_NOTIF_TARGET = ? OR $COL_NOTIF_TARGET = ?)",
+                arrayOf(target.name, NotificationTarget.ALL.name)
+            )
+        } else {
+            db.rawQuery(
+                "SELECT COUNT(*) FROM $TABLE_NOTIFICATIONS WHERE $COL_NOTIF_IS_READ = 0",
+                null
+            )
+        }
+        val count = if (cursor.moveToFirst()) cursor.getInt(0) else 0
+        cursor.close()
+        return count
+    }
+
+    private fun cursorToNotification(cursor: Cursor): AppNotification {
+        val targetStr = cursor.getString(cursor.getColumnIndexOrThrow(COL_NOTIF_TARGET))
+        val targetEnum = try {
+            NotificationTarget.valueOf(targetStr)
+        } catch (_: Exception) {
+            NotificationTarget.ALL
+        }
+        return AppNotification(
+            id = cursor.getString(cursor.getColumnIndexOrThrow(COL_NOTIF_ID)),
+            title = cursor.getString(cursor.getColumnIndexOrThrow(COL_NOTIF_TITLE)),
+            message = cursor.getString(cursor.getColumnIndexOrThrow(COL_NOTIF_MESSAGE)),
+            date = cursor.getString(cursor.getColumnIndexOrThrow(COL_NOTIF_DATE)),
+            timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COL_NOTIF_TIMESTAMP)),
+            isRead = cursor.getInt(cursor.getColumnIndexOrThrow(COL_NOTIF_IS_READ)) == 1,
+            target = targetEnum,
+            type = cursor.getString(cursor.getColumnIndexOrThrow(COL_NOTIF_TYPE)),
+            targetScreen = if (cursor.isNull(cursor.getColumnIndexOrThrow(COL_NOTIF_TARGET_SCREEN))) null else cursor.getString(cursor.getColumnIndexOrThrow(COL_NOTIF_TARGET_SCREEN))
+        )
     }
 
     private fun cursorToProduct(cursor: Cursor): Product {

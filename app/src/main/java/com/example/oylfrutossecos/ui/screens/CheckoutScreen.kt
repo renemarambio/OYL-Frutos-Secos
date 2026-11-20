@@ -78,6 +78,7 @@ import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
 import com.example.oylfrutossecos.ui.viewmodel.AuthViewModel
 import com.example.oylfrutossecos.ui.viewmodel.CartViewModel
+import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
 import com.example.oylfrutossecos.ui.viewmodel.SalesViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -88,6 +89,7 @@ fun CheckoutScreen(
     cartViewModel: CartViewModel,
     salesViewModel: SalesViewModel,
     authViewModel: AuthViewModel,
+    notificationViewModel: NotificationViewModel? = null,
     onNavigateToMap: () -> Unit,
     onNavigateToMyOrders: () -> Unit,
     onNavigateBack: () -> Unit
@@ -543,6 +545,7 @@ fun CheckoutScreen(
                         onSuccess = { sale ->
                             cartViewModel.clearCart()
                             successSale = sale
+                            notificationViewModel?.notifyOrderPlaced(sale.orderNumber, sale.total)
                         },
                         onError = { errMsg ->
                             coroutineScope.launch {

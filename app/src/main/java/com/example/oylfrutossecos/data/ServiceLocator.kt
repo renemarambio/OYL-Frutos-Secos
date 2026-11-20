@@ -66,10 +66,37 @@ object ServiceLocator {
         }
     }
 
+    @Volatile
+    private var notificationLocalDataSource: com.example.oylfrutossecos.data.local.NotificationLocalDataSource? = null
+
+    @Volatile
+    private var notificationRepository: com.example.oylfrutossecos.data.repository.NotificationRepository? = null
+
+    fun provideNotificationLocalDataSource(context: Context): com.example.oylfrutossecos.data.local.NotificationLocalDataSource {
+        return notificationLocalDataSource ?: synchronized(this) {
+            val dbHelper = AppDatabaseHelper.getInstance(context)
+            val ds = com.example.oylfrutossecos.data.local.SqliteNotificationLocalDataSource(dbHelper)
+            notificationLocalDataSource = ds
+            ds
+        }
+    }
+
+    fun provideNotificationRepository(context: Context): com.example.oylfrutossecos.data.repository.NotificationRepository {
+        return notificationRepository ?: synchronized(this) {
+            val repo = com.example.oylfrutossecos.data.repository.NotificationRepository(
+                local = provideNotificationLocalDataSource(context)
+            )
+            notificationRepository = repo
+            repo
+        }
+    }
+
     fun reset() {
         productLocalDataSource = null
         productRepository = null
         salesRepository = null
         indicatorRepository = null
+        notificationLocalDataSource = null
+        notificationRepository = null
     }
 }

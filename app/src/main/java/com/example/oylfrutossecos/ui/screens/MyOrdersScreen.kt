@@ -69,6 +69,7 @@ import com.example.oylfrutossecos.ui.viewmodel.SalesViewModel
 fun MyOrdersScreen(
     authViewModel: AuthViewModel,
     salesViewModel: SalesViewModel,
+    notificationViewModel: com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel? = null,
     onNavigateToCatalog: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -82,6 +83,12 @@ fun MyOrdersScreen(
         val email = currentUser?.email ?: ""
         if (email.isNotBlank()) {
             salesViewModel.loadCustomerOrders(email)
+        }
+    }
+
+    LaunchedEffect(orders) {
+        if (orders.isNotEmpty()) {
+            notificationViewModel?.detectOrderStatusChanges(orders)
         }
     }
 
@@ -202,6 +209,22 @@ fun MyOrdersScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
+                            tint = Color.White
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            val email = currentUser?.email ?: ""
+                            if (email.isNotBlank()) {
+                                salesViewModel.loadCustomerOrders(email)
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refrescar pedidos",
                             tint = Color.White
                         )
                     }

@@ -47,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import com.example.oylfrutossecos.ui.viewmodel.NotificationViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -109,6 +110,12 @@ fun HomeScreen(
 
     val lowStockCount = products.count { it.isLowStock }
     val totalStockUnits = products.sumOf { it.stock }
+
+    LaunchedEffect(products) {
+        if (products.isNotEmpty()) {
+            notificationViewModel.checkLowStockProducts(products)
+        }
+    }
 
     val quickActions = listOf(
         QuickActionItem(

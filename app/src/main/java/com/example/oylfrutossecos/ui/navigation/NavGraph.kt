@@ -373,6 +373,7 @@ fun AppNavGraph(
                 cartViewModel = cartViewModel,
                 salesViewModel = salesViewModel,
                 authViewModel = authViewModel,
+                notificationViewModel = notificationViewModel,
                 onNavigateToMap = { navController.navigate(Screen.DeliveryMap.route) },
                 onNavigateToMyOrders = {
                     navController.navigate(Screen.MyOrders.route) {
@@ -422,6 +423,7 @@ fun AppNavGraph(
 
             SalesHistoryScreen(
                 salesViewModel = salesViewModel,
+                notificationViewModel = notificationViewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -431,6 +433,7 @@ fun AppNavGraph(
             MyOrdersScreen(
                 authViewModel = authViewModel,
                 salesViewModel = salesViewModel,
+                notificationViewModel = notificationViewModel,
                 onNavigateToCatalog = { navController.navigate(Screen.ProductCatalog.createRoute("Todos")) },
                 onNavigateBack = { navController.popBackStack() }
             )
@@ -478,11 +481,17 @@ fun AppNavGraph(
             )
         }
 
-        // 22. Notifications Screen (Simulación con contador y leído/no leído)
+        // 22. Notifications Screen (Con SQLite, NotificationCompat y navegación)
         composable(Screen.Notifications.route) {
             NotificationsScreen(
                 authViewModel = authViewModel,
                 notificationViewModel = notificationViewModel,
+                onNavigateToScreen = { target ->
+                    when (target) {
+                        "MY_ORDERS" -> navController.navigate(Screen.MyOrders.route)
+                        "INVENTORY" -> navController.navigate(Screen.Inventory.route)
+                    }
+                },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
