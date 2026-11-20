@@ -99,27 +99,49 @@ backend/
 ## 4. Funcionalidades de la Aplicación
 
 ### Perfil Cliente
-- **Catálogo de productos:** Visualización en cuadrícula con imágenes, precios en CLP y cálculo estimado en dólares (US$).
+- **Catálogo de productos con fotos reales:** Visualización en cuadrícula con imágenes reales de alta calidad (licencia libre) servidas desde `ms-productos` y cargadas asíncronamente con Coil, precios en CLP (formateados ignorando puntos de miles) y cálculo estimado en dólares (US$).
 - **Filtro y búsqueda:** Filtrado interactivo por categorías (Frutos secos, Semillas, Frutas deshidratadas, Harinas) y barra de búsqueda en tiempo real.
-- **Detalle de producto:** Información nutricional, presentación, stock disponible y valor referencial en US$ mediante la API externa de mindicador.cl.
-- **Carrito de compras:** Control dinámico de cantidades, validación de stock disponible, cálculo de subtotal, IVA (19 %) y costo de despacho según distancia calculada.
+- **Detalle de producto:** Imagen en alta resolución, información nutricional, presentación, stock disponible y valor referencial en US$ mediante la API externa de mindicador.cl.
+- **Carrito de compras:** Miniaturas de imágenes de cada producto, control dinámico de cantidades, validación de stock disponible, cálculo de subtotal, IVA (19 %) y costo de despacho según distancia calculada.
 - **Proceso de Checkout:** Formulario validado con datos de contacto, dirección y medio de pago. Envío del pedido a `ms-pedidos` con descuento automático de stock en `ms-productos`.
 - **Mis Pedidos:** Listado de órdenes realizadas por el cliente autenticado, con detalle de productos comprados y estado de entrega legible ("Pendiente", "En preparación", "En camino", "Entregado", "Cancelado").
+- **Centro de Notificaciones y Alertas del Sistema:**
+  - Campana superior con distintivo (badge) numérico en tiempo real de notificaciones no leídas.
+  - Pantalla dedicada de notificaciones para leer, marcar como leídas y eliminar mensajes.
+  - Notificaciones nativas de Android (`NotificationCompat` en canal con permiso Android 13+) al confirmar una compra (*"Pedido ORD-XXXX recibido"*).
+  - Detección automática de cambio de estado de despacho al abrir/refrescar *"Mis Pedidos"* (*"Tu pedido ORD-XXXX está EN_CAMINO"*), abriendo la pantalla de pedidos al tocar la notificación.
 - **Caché Offline:** En caso de corte de conexión o servidor no disponible, el catálogo se carga automáticamente desde SQLite con el aviso *"Sin conexión con el servidor — mostrando datos guardados"*, impidiendo compras o mutaciones mientras esté sin red.
 - **Soporte y contacto:** Llamada telefónica y redacción de correo mediante `Intent` nativo de Android.
 
 ### Perfil Administrador
 - **Gestión de Inventario (CRUD Completo):**
-  - **Crear Producto:** Nombre, descripción, categoría, precio, stock inicial y código de barras.
-  - **Editar Producto:** Modificación de datos y ajuste rápido de inventario.
+  - **Crear Producto:** Nombre, descripción, categoría, precio entero CLP, stock inicial, código de barras e imagen (cámara local o URL).
+  - **Editar Producto:** Modificación de datos con sanitización de precio (acepta "12.000" y lo normaliza a 12000), previsualización de imagen y ajuste rápido de inventario.
   - **Eliminar Producto:** Eliminación física con confirmación.
   - **Ajuste de Stock (PATCH):** Actualización inmediata de existencias.
   - *Bloqueo de seguridad:* Las opciones de creación, edición y eliminación se deshabilitan cuando la app opera en modo caché sin red.
+- **Alertas de Stock Crítico:** Notificación de Android y registro automático en bandeja al ingresar al panel si hay productos con stock ≤ 5 unidades (*"X productos con stock crítico"*), navegando directo a la pantalla de inventario al tocarla.
+- **Confirmación de Despacho:** Notificación nativa y registro al actualizar el estado de entrega de un pedido.
 - **Escáner de Código de Barras (ZXing):** Búsqueda instantánea de productos en `ms-productos` mediante lectura con la cámara o ingreso manual.
 - **Generación de Códigos QR:** Emisión de etiquetas QR imprimibles por producto.
 - **Historial Global de Ventas:** Visualización de todas las órdenes registradas en el backend con montos, fechas, clientes y productos.
 - **Gestión de Estados de Despacho:** Modificación del estado del pedido (`PATCH /api/orders/{id}/status`) entre los ciclos de vida de despacho.
 - **Eliminación de Pedidos:** Anulación y eliminación de registros de venta.
+
+---
+
+### Módulos Especiales
+
+#### 1. Sistema de Fotos Reales de Productos (Coil + ms-productos)
+- **14 Fotografías Reales:** Cada producto del seed (`seed-products.json`) cuenta con una imagen real optimizada (~600px, < 150 KB, formato JPG) verificada visualmente y licenciada bajo Creative Commons / Dominio Público desde Wikimedia Commons (ver registro completo en [docs/creditos_imagenes.md](docs/creditos_imagenes.md)).
+- **Alojamiento Estático en Backend:** Las fotos se almacenan y sirven directamente como recursos estáticos en `backend/ms-productos/src/main/resources/static/images/` accesibles en `http://localhost:8081/images/<archivo>.jpg`.
+- **Carga Dinámica en Android con Coil:** Utiliza `AsyncImage` resolviendo URLs relativas con `BuildConfig.PRODUCTS_BASE_URL` (`http://10.0.2.2:8081/` en emulador), rutas locales de cámara (`content://` o rutas absolutas) y fallback con íconos vectoriales en caso de error de red.
+
+#### 2. Sistema de Notificaciones Persistentes y Android System Notifications
+- **Persistencia SQLite:** Almacenamiento local mediante `TABLE_NOTIFICATIONS` en `AppDatabaseHelper` con migración de esquema SQLite versionada, garantizando que el historial de notificaciones no se pierda al cerrar la app.
+- **Arquitectura Limpia:** Separación en `NotificationLocalDataSource`, `NotificationRepository` y `NotificationViewModel`, testeables al 100% con MockK sin depender de APIs de Android.
+- **Notificaciones del Sistema Android:** Despacho con `NotificationCompat.Builder`, canal dedicado (`oyl_frutos_secos_channel`), soporte y solicitud en tiempo de ejecución del permiso `POST_NOTIFICATIONS` en Android 13+ (API 33+).
+- **Deep Linking / Intent Navigation:** Las notificaciones incluyen `PendingIntent` que redirige directamente a la pantalla correspondiente (`MY_ORDERS` o `INVENTORY`) al ser pulsadas.
 
 ---
 
@@ -179,6 +201,15 @@ docker compose up --build
 > **Nota:** MySQL se expone en el puerto **3307** (`root` / `oyl1234`) para evitar conflictos con instalaciones locales de XAMPP. Los microservicios quedan listos en:
 > - `ms-productos`: `http://localhost:8081` (Swagger: `http://localhost:8081/swagger-ui.html`)
 > - `ms-pedidos`: `http://localhost:8082` (Swagger: `http://localhost:8082/swagger-ui.html`)
+
+#### Recargar Seed y Fotos (Limpieza de Base de Datos)
+Si la base de datos ya tenía registros previos sin imágenes y se requiere recargar el seed completo con las rutas de las fotos reales:
+```bash
+cd backend
+docker compose down -v
+docker compose up --build -d
+```
+El parámetro `-v` elimina el volumen persistente de MySQL (`backend_oyl-mysql-data`), forzando a que `ms-productos` vuelva a poblar las tablas con `seed-products.json` y sus URLs relativas `/images/<archivo>.jpg`.
 
 #### Opción B: Ejecución Manual con Maven Wrapper
 Si se utiliza MySQL local (XAMPP en puerto 3306):
@@ -272,9 +303,9 @@ Verificación criptográfica realizada con `apksigner` confirmando esquema de fi
 
 ---
 
-### 3. Reporte de Cobertura JaCoCo (83 % en Lógica de Negocio)
+### 3. Reporte de Cobertura JaCoCo (82.74 % en Lógica de Negocio)
 Superación del 80 % exigido en las capas de ViewModels, Repositorios, Validaciones y Mapeadores:
 
 ![Reporte Cobertura JaCoCo](docs/cobertura.png)
 
-Para un desglose detallado de las 133 pruebas unitarias, consultar el documento [docs/cobertura.md](docs/cobertura.md).
+Para un desglose detallado de las **184 pruebas unitarias** (100 % de aprobación y 82.74 % de cobertura de instrucciones), consultar el documento [docs/cobertura.md](docs/cobertura.md).
