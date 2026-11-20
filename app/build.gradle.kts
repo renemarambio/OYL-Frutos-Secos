@@ -93,6 +93,7 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.coil.compose)
     // ZXing Android Embedded para lectura funcional de códigos QR y códigos de barra
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     // OpenStreetMap (osmdroid) para mapa interactivo de despachos y pedidos

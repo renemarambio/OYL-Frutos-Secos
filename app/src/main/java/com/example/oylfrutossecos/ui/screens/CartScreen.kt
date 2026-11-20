@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.oylfrutossecos.data.model.CartItem
+import com.example.oylfrutossecos.ui.components.ProductImage
 import com.example.oylfrutossecos.ui.theme.BrandAccent
 import com.example.oylfrutossecos.ui.theme.BrandPrimary
 import com.example.oylfrutossecos.ui.theme.BrandSecondary
@@ -345,20 +346,16 @@ fun CartItemRow(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = BrandPrimary.copy(alpha = 0.12f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Spa,
-                        contentDescription = null,
-                        tint = BrandPrimary,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-            }
+            ProductImage(
+                imagePath = item.product.imageUrl,
+                contentDescription = item.product.name,
+                placeholderTint = BrandPrimary,
+                placeholderSize = 26.dp,
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(BrandPrimary.copy(alpha = 0.12f))
+            )
 
             Spacer(modifier = Modifier.width(12.dp))
 
